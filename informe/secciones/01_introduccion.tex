@@ -1,0 +1,54 @@
+\section{Introducción}
+\label{sec:introduccion}
+
+\subsection{Problemática}
+\label{sec:problematica}
+% Fuente: anteproyecto 1.1
+
+El melanoma es un cáncer de piel cuyo pronóstico depende de cuán temprano se lo detecte. Al comienzo se parece mucho a un lunar común, y el dermatólogo lo evalúa con el dermatoscopio, una lente de aumento con iluminación propia. Para hacerlo de forma sistemática usa la regla ABCD, que puntúa la asimetría ($A$, de 0 a 2 según en cuántos ejes es asimétrica la lesión), el borde ($B$, de 0 a 8 según en cuántos sectores el pigmento termina de forma abrupta), los colores ($C$, de 1 a 6) y las estructuras diferenciales, como la red de pigmento o los glóbulos ($D$, de 1 a 5), y los combina en el puntaje dermatoscópico total
+\begin{equation}
+  \mathrm{TDS} = 1{,}3\,A + 0{,}1\,B + 0{,}5\,C + 0{,}5\,D .
+  \label{eq:tds}
+\end{equation}
+Un TDS menor a 4,75 indica una lesión benigna; entre 4,75 y 5,45, una lesión sospechosa, y mayor a 5,45, una lesión probablemente maligna \parencite{nachbar1994}. La evaluación es visual y su precisión depende de la experiencia de quien la hace.
+
+\subsection{Marco teórico}
+\label{sec:marco}
+
+\paragraph{Imagen dermatoscópica y color.} Es una imagen RGB en la que el color tiene valor diagnóstico, porque depende de la profundidad del pigmento: los marrones y el negro indican melanina en la epidermis; el azul grisáceo, melanina en la dermis, y el blanco, zonas de regresión. Por eso conviene trabajar en el espacio HSV, que separa el matiz ($H$) y la saturación ($S$) del brillo ($V$).
+
+\paragraph{Artefactos.} Los pelos que cruzan la lesión (líneas oscuras y finas) desplazan el borde segmentado y agregan un color que no pertenece a la lesión. Pueden quitarse con un cierre morfológico (dilatación seguida de erosión) con un elemento estructurante más ancho que un pelo y más chico que la lesión, idea en la que se basa DullRazor \parencite{lee1997}. También aparecen burbujas por el gel de inmersión y esquinas oscuras por la lente circular (viñeteo).
+
+\paragraph{Textura.} Las estructuras diferenciales son patrones que se repiten dentro de la lesión. La matriz de co-ocurrencia de niveles de gris (GLCM) cuenta con qué frecuencia aparecen juntos dos niveles de gris a una distancia y dirección dadas, y de ella se obtienen atributos como la energía, la entropía, el contraste, la homogeneidad y la correlación \parencite{haralick1973}.
+
+\paragraph{Zonas de la lesión.} \pendiente{(Devolución) Por qué mirar por separado el centro, la periferia y la interfase con la piel: qué estructuras de la regla aparecen típicamente en cada zona (red de pigmento atípica y estrías en la periferia, velo y regresión en el centro...) y qué indica un cambio abrupto entre lesión y piel. Citar.}
+
+\paragraph{Compresión.} \pendiente{JPEG en dos o tres oraciones (DCT por bloques de 8$\times$8, cuantización, submuestreo de croma) y por qué puede afectar al color y a la textura \parencite{wallace1991}.}
+
+\subsection{Estado del arte}
+\label{sec:estado-arte}
+
+Los sistemas de diagnóstico asistido segmentan la lesión, miden descriptores de forma, color y textura y los entregan a un clasificador \parencite{celebi2007}. Las redes neuronales convolucionales ya alcanzan un desempeño comparable al de los dermatólogos \parencite{esteva2017}, pero no muestran en qué se basa cada decisión, y la mayoría solo informa el diagnóstico final, por lo que no permiten comprobar si cada criterio se mide bien.
+\pendiente{(Devolución) Ya hay varios trabajos de este tipo: lo innovador acá es el enfoque y el algoritmo. Agregar 2-3 trabajos con criterios ABCD automáticos y sus resultados en PH2 (para comparar en las Conclusiones) y precisar qué aporta este trabajo: criterios medidos por separado, validados contra el dermatólogo, y mapas que muestran \emph{dónde} está la información.}
+
+\subsection{Pregunta, objetivos e hipótesis}
+\label{sec:objetivos}
+
+\paragraph{Pregunta.} ¿Pueden medirse automáticamente los criterios de la regla ABCD, complementarse con descriptores por zona de la lesión y distinguir lesiones sospechosas de lunares comunes?
+
+\paragraph{Objetivo general.} Desarrollar un algoritmo que segmente la lesión en una imagen dermatoscópica, calcule los criterios de la regla ABCD y el TDS, los complemente con descriptores del centro, la periferia y la interfase con la piel, y estime si la lesión es sospechosa, con una interfaz gráfica que muestre cada etapa.
+
+\paragraph{Objetivos específicos.}
+\pendiente{Revisar y ajustar con el grupo:}
+(1)~quitar los artefactos (viñeteo y pelos) y medir su efecto en la segmentación;
+(2)~caracterizar la pérdida por compresión JPEG;
+(3)~segmentar la lesión y validar contra la máscara manual (Dice);
+(4)~medir A, B y C y comparar A y C con el dermatólogo ($\kappa$ de Cohen);
+(5)~estimar un criterio D adaptado a partir de la textura;
+(6)~construir mapas de características y descriptores por zona y evaluar si mejoran la clasificación al agregarse al TDS;
+(7)~clasificar con el TDS y medir sensibilidad, especificidad y AUC en un conjunto de prueba.
+
+\paragraph{Hipótesis.}
+(H1)~Quitar los pelos con un cierre morfológico mejora la segmentación de las imágenes con pelos respecto de no quitarlos y de un filtro de mediana.
+(H2)~El TDS automático separa las lesiones sospechosas de los nevos comunes, y agregarle términos de textura y de zonas mejora esa separación.
+Como objetivo de máxima, se evalúa además si el desempeño se mantiene sobre imágenes comprimidas con JPEG.

@@ -1,0 +1,92 @@
+\section{Materiales y métodos}
+\label{sec:metodos}
+
+\subsection{Base de datos y alcance}
+\label{sec:base}
+% Módulo: M0
+
+Se usa la base PH2 \parencite{mendonca2013}, del Hospital Pedro Hispano (Portugal). Contiene 200 imágenes dermatoscópicas RGB de $768\times560$ píxeles, adquiridas con el mismo equipo y en condiciones uniformes: 80 nevos comunes, 80 nevos atípicos y 40 melanomas. Incluye el diagnóstico clínico e histológico, la máscara de la lesión dibujada a mano y la evaluación de un dermatólogo de cada criterio: asimetría (0, 1 o 2 ejes), presencia de cada uno de los seis colores y presencia de red de pigmento, puntos y glóbulos, estrías, áreas de regresión y velo azul-blanquecino. Eso permite validar el algoritmo paso a paso: la segmentación contra la máscara, A y C contra el dermatólogo, la textura contra las estructuras anotadas y la clasificación contra el diagnóstico.
+
+\pendiente{Alcance acotado (devolución): qué imágenes se usan y por qué; definición de ``sospechosa''; partición estratificada entrenamiento/prueba (proporción, semilla). Tabla con la cantidad de imágenes por diagnóstico en cada conjunto. Aclarar que todos los umbrales se eligen sólo con entrenamiento.}
+
+\subsection{Esquema del algoritmo}
+\label{sec:esquema}
+\pendiente{Diagrama de bloques: imagen $\rightarrow$ mejoramiento (viñeta, pelos) $\rightarrow$ segmentación $\rightarrow$ criterios A, B, C $\mid$ textura y D $\mid$ zonas y mapas $\rightarrow$ TDS (y TDS extendido) $\rightarrow$ clasificación. Indicar el módulo del repositorio de cada bloque.}
+
+\subsection{Pre-procesamiento}
+\label{sec:preprocesamiento}
+
+\subsubsection{Análisis exploratorio y mejoramiento}
+% Módulo: M1
+Los histogramas de cada canal (RGB y HSV) dentro de la lesión y en la piel se usan para elegir el canal con más contraste. Las esquinas oscuras del viñeteo se detectan con un umbral y etiquetando las regiones conectadas al borde de la imagen, y se excluyen. Para los pelos se aplica a cada canal un cierre morfológico con elementos estructurantes lineales en varias orientaciones; los píxeles en los que el cierre aumenta el valor por encima de un umbral se marcan como pelo y se reconstruyen a partir de sus vecinos.
+\pendiente{Parámetros elegidos (tabla) y figura: original, máscara de pelos, resultado.}
+
+\subsubsection{Compresión y descompresión}
+% Módulo: M2
+\pendiente{Las imágenes se comprimen con JPEG a distintas calidades y se descomprimen; se mide la tasa de compresión, el PSNR (en toda la imagen y dentro de la lesión) y el SSIM \parencite{wang2004}.}
+
+\subsection{Segmentación}
+\label{sec:segmentacion}
+% Módulo: M3
+Se comparan el umbral de Otsu \parencite{otsu1979}, el crecimiento de regiones desde el centro de la imagen, k-means y el modelo de Chan-Vese \parencite{chan2001}. Luego se aplica una apertura para eliminar islas, un cierre para unir los huecos del borde y, con el etiquetado, se conserva la región que contiene el centro. Se elige el método con mayor Dice medio en entrenamiento.
+\pendiente{Método elegido y parámetros.}
+
+\subsection{Criterios A, B y C}
+\label{sec:abc}
+% Módulo: M4
+\textbf{Asimetría:} se calculan el centroide y los ejes principales de la máscara, se la refleja sobre cada eje y se mide la fracción de área que no se superpone. Un eje es asimétrico si esa fracción supera un umbral, elegido en entrenamiento para coincidir lo más posible con el dermatólogo, y $A$ es la cantidad de ejes asimétricos. \textbf{Borde:} la lesión se divide en 8 sectores y en cada uno se calcula, con el filtro de Sobel sobre $V$, el gradiente medio sobre el contorno; los sectores con gradiente alto cuentan como borde abrupto. \textbf{Color:} cada píxel se asigna al más cercano de los seis colores de referencia en HSV, y un color está presente si ocupa más de un porcentaje mínimo de la lesión. Se calcula además la circularidad $4\pi\,\text{área}/\text{perímetro}^2$.
+\pendiente{Umbrales elegidos y cómo; referencias HSV de los seis colores.}
+
+\subsection{Textura y criterio D adaptado}
+\label{sec:textura}
+% Módulo: M5
+Se calcula la GLCM sobre $V$ dentro de la lesión, promediada en las cuatro direcciones, y sus atributos de energía, entropía, contraste, IDM, correlación, \emph{cluster shade} y \emph{cluster prominence} \parencite{haralick1973}. Como PH2 no anota exactamente las cinco estructuras de la regla, se usa un $D$ adaptado: la cantidad de estructuras que el dermatólogo marcó como presentes. Para estimarlo en una imagen nueva se usa el atributo que más cambia con esa cantidad en entrenamiento, con umbrales que separan los distintos valores de $D$.
+\pendiente{Niveles de gris, distancia, atributo elegido y umbrales.}
+
+\subsection{Zonas de la lesión y mapas de características}
+\label{sec:zonas}
+% Módulo: M6
+\pendiente{(Devolución) Definición de centro, periferia e interfases interna y externa (transformada de distancia, anchos); atributos por zona; contrastes entre zonas propuestos como términos del TDS; mapas de características por ventanas. Figura con las zonas sobre una lesión.}
+
+\subsection{Clasificación}
+\label{sec:clasificacion}
+% Módulo: M7
+Una lesión se clasifica como sospechosa si su TDS automático (ec.~\ref{eq:tds}) supera un umbral. Se comparan el umbral clínico (4,75) con el que maximiza la suma de sensibilidad y especificidad en entrenamiento (índice de Youden, \cite{youden1950}). Para la hipótesis 2 se define un TDS extendido sumando al TDS los términos de textura y de zonas elegidos en entrenamiento, estandarizados con la media y el desvío de entrenamiento, y se vuelve a elegir el umbral.
+\pendiente{Términos elegidos.}
+
+\subsection{Evaluación}
+\label{sec:evaluacion}
+Sobre el conjunto de prueba, la segmentación se compara con la máscara de PH2 mediante el coeficiente de Dice. Los criterios A y C se comparan con el dermatólogo mediante el $\kappa$ de Cohen \parencite{cohen1960}; valores entre 0,41 y 0,60 se consideran un acuerdo moderado \parencite{landis1977}. La clasificación se mide con la sensibilidad, la especificidad y el área bajo la curva ROC (AUC). Para H1 se compara, en las imágenes con pelos, el Dice sin quitar los pelos, con mediana y con cierre; para H2, las métricas del TDS y del TDS extendido.
+\pendiente{Prueba de significancia (p. ej. bootstrap del AUC o prueba de Wilcoxon para el Dice pareado).}
+
+\subsection{Interfaz gráfica}
+\label{sec:interfaz}
+% Carpeta: interfaz/
+\pendiente{Aplicación en Streamlit (\texttt{streamlit run interfaz/app.py}): captura y descripción breve de su manejo (elegir imagen y métodos; ver máscara de pelos, contorno, colores, zonas, mapa de textura, A, B, C, D, TDS y clasificación).}
+
+\subsection{Código y repositorio}
+\label{sec:codigo}
+La consigna pide detallar el contenido de cada archivo de Python. El código está en el repositorio \pendiente{link}. Cada módulo tiene un archivo \texttt{.py} con las funciones y un cuaderno \texttt{.ipynb} con las pruebas, figuras y discusión.
+
+\begin{table}[h]
+  \centering\footnotesize
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Carpeta & Archivo & Contenido \\
+    \midrule
+    raíz & \texttt{main.py} & Verifica módulos, procesa imágenes y genera resultados \\
+    M0 & \texttt{carga\_de\_datos.py} & Lectura de PH2, alcance y partición \\
+    M1 & \texttt{mejoramiento.py} & Viñeta y remoción de pelos \\
+    M2 & \texttt{compresion.py} & JPEG, tasa de compresión, PSNR y SSIM \\
+    M3 & \texttt{segmentacion.py} & Métodos de segmentación, posprocesamiento y Dice \\
+    M4 & \texttt{criterios\_abc.py} & Asimetría, borde, colores y circularidad \\
+    M5 & \texttt{textura\_criterio\_d.py} & GLCM y criterio D adaptado \\
+    M6 & \texttt{zonas\_y\_mapas.py} & Zonas de la lesión y mapas de características \\
+    M7 & \texttt{clasificacion\_resultados.py} & TDS, umbrales, métricas y figuras finales \\
+    herramientas & \texttt{*.py} & Pegamento, verificación, gráficos y lesiones de prueba \\
+    interfaz & \texttt{app.py} & Interfaz gráfica \\
+    \bottomrule
+  \end{tabular}
+  \caption{Archivos de Python del repositorio. Cada módulo M$n$ está en \texttt{modulos/m$n$\_\ldots/}.}
+  \label{tab:archivos}
+\end{table}

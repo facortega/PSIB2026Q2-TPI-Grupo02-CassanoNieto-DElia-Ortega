@@ -1,0 +1,11 @@
+numpy
+scipy
+pandas
+matplotlib
+scikit-image
+scikit-learn
+opencv-python-headless
+pillow
+jinja2
+streamlit
+jupyter

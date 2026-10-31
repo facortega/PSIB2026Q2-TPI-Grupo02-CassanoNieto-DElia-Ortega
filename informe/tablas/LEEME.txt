@@ -1,0 +1,2 @@
+Acá se guardan solas las tablas que generan los cuadernos con graficos.guardar_tabla()
+(.csv para revisar y .tex para el informe: \input{tablas/nombre}).

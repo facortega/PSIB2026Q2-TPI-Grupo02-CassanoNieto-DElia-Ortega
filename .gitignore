@@ -1,0 +1,34 @@
+# Archivos que Git NO sube al repositorio
+
+# Base de datos: cada integrante la descarga (ver datos/LEEME.md)
+datos/PH2Dataset/
+*.bmp
+
+# Python y Jupyter
+__pycache__/
+.ipynb_checkpoints/
+.venv/
+venv/
+
+# Archivos auxiliares de LaTeX (en cualquier carpeta)
+informe/build/
+*.aux
+*.log
+*.out
+*.toc
+*.lof
+*.lot
+*.bbl
+*.bcf
+*.blg
+*.run.xml
+*.fdb_latexmk
+*.fls
+*.synctex.gz
+*.synctex(busy)
+
+# Sistema operativo y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

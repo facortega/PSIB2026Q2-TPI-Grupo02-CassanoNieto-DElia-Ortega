@@ -1,0 +1,2 @@
+Acá se guardan solas las figuras que generan los cuadernos con graficos.guardar_figura().
+En el informe se usan con \includegraphics{nombre_de_la_figura}.

@@ -1,0 +1,87 @@
+\documentclass[11pt,a4paper]{article}
+
+% --- Idioma y tipografía ------------------------------------------------------
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla,es-nodecimaldot]{babel}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage[margin=2.5cm]{geometry}
+
+% --- Matemática, figuras y tablas ---------------------------------------------
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{subcaption}
+\usepackage{booktabs}
+\usepackage{siunitx}
+\sisetup{output-decimal-marker={,}}
+\graphicspath{{figuras/}}
+
+% --- Bibliografía: APA, ordenada por aparición --------------------------------
+\usepackage{csquotes}
+\usepackage[style=apa,sorting=none,backend=biber]{biblatex}
+\addbibresource{referencias.bib}
+
+\usepackage{xcolor}
+\usepackage[hidelinks,pdftitle={PSIB2026Q2-TPI-Grupo02-CassanoNieto DElia Ortega}]{hyperref}
+
+% --- Marcas de trabajo pendiente ----------------------------------------------
+% Para la entrega: cambiar \borradortrue por \borradorfalse (o borrar las marcas).
+\newif\ifborrador
+\borradortrue
+\newcommand{\pendiente}[1]{\ifborrador{\color{red}\textbf{[PENDIENTE]} #1}\fi}
+
+% LÍMITE DE LA CONSIGNA: 8 páginas desde la Introducción hasta las Conclusiones
+% (figuras y tablas incluidas; sin carátula ni referencias) + anexo opcional de 4.
+
+% ------------------------------------------------------------------------------
+\begin{document}
+
+\begin{titlepage}
+  \centering
+  {\large Instituto Tecnológico de Buenos Aires\par}
+  \vspace{0.3cm}
+  {\large 16.63 Procesamiento de Señales e Imágenes Biomédicas\par}
+  {2026 --- Segundo cuatrimestre\par}
+  \vspace{0.2cm}
+  {Comisión BIO\par}
+  \vspace{2.5cm}
+  {\LARGE\bfseries Detección de lunares sospechosos\\mediante imágenes dermatoscópicas\par}
+  \vspace{0.4cm}
+  {\Large Trabajo Práctico de Imágenes (TPI)\par}
+  \vspace{0.3cm}
+  {\small PSIB2026Q2-TPI-Grupo02-CassanoNieto DElia Ortega\par}
+  \vspace{2.5cm}
+  {\large Grupo 2\par}
+  \vspace{0.8cm}
+  \begin{tabular}{ll}
+    \toprule
+    Integrante & Legajo \\
+    \midrule
+    Cassano Nieto, Facundo Tomás & 65555 \\
+    D'Elía, Lucas Valentín & 65414 \\
+    Ortega, Facundo & 65560 \\
+    \bottomrule
+  \end{tabular}
+  \vspace{1.2cm}
+
+  {\small Docentes: Roberto Sebastián Tomás, Lucila Capurro,\\ Francisco Joaquín Tassara y Victoria Reppucci\par}
+  \vfill
+  {\large 5 de noviembre de 2026\par}
+\end{titlepage}
+
+\input{secciones/00_resumen}
+\tableofcontents
+\clearpage
+
+\input{secciones/01_introduccion}
+\input{secciones/02_materiales_metodos}
+\input{secciones/03_resultados}
+\input{secciones/04_conclusiones}
+
+\printbibliography[heading=bibintoc,title={Referencias}]
+
+% Anexo opcional (máximo 4 páginas). Comentar la línea si no se usa.
+\appendix
+\input{secciones/05_anexo}
+
+\end{document}
