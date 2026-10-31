@@ -3,7 +3,39 @@
 % Todos los números de esta sección son del conjunto de PRUEBA (salvo que se aclare).
 
 \subsection{Pre-procesamiento}
-\pendiente{M1: ejemplos de remoción de pelos; H1 (Dice sin quitar / mediana / cierre en las imágenes con pelos). M2: tabla calidad $\rightarrow$ tasa de compresión, PSNR y SSIM.}
+
+\paragraph{Canal de trabajo.} La tabla~\ref{tab:auc-canal} muestra el AUC de cada canal para separar píxeles de lesión y de piel. El canal azul es el que más contraste ofrece, lo que es coherente con que la melanina absorbe más la luz azul que la roja. El canal $V$, propuesto en el anteproyecto, está entre los peores: como $V=\max(R,G,B)$ y en la piel y la lesión domina el rojo, $V\approx R$. Por eso la segmentación se hace sobre $B$. \pendiente{Indicar qué canal usan finalmente M4 (borde) y M5 (textura).}
+
+\begin{table}[h]
+  \centering\small
+  \begin{tabular}{@{}lcccccccc@{}}
+    \toprule
+    & B & G & gris & L & S & R & V & H \\
+    \midrule
+    AUC medio  & 0,976 & 0,965 & 0,963 & 0,961 & 0,941 & 0,902 & 0,902 & 0,715 \\
+    AUC mínimo & 0,776 & 0,797 & 0,803 & 0,791 & 0,581 & 0,570 & 0,569 & 0,505 \\
+    \bottomrule
+  \end{tabular}
+  \caption{AUC de cada canal para separar píxeles de lesión y de piel (promedio y peor caso sobre las 140 imágenes de entrenamiento).}
+  \label{tab:auc-canal}
+\end{table}
+
+\paragraph{Referencias de color.} Las máscaras de color de PH2 resultaron poco útiles para el criterio C: son regiones gruesas, todos los colores tienen un matiz mediano parecido ($H$ entre 0,03 y 0,06), el rojo no tiene muestras en entrenamiento y el blanco aparece en sólo 2 imágenes. \pendiente{(M4) Estrategia adoptada para las referencias de color.}
+
+\paragraph{Viñeteo.} Con el perfil radial, sólo 4 de las 200 imágenes pierden más del 2\,\% de la lesión por quedar fuera de la zona válida (máximo 5,9\,\%, IMD411), y esos píxeles están dentro de la esquina oscura. Sin el radio mínimo, cinco lesiones muy grandes perdían hasta el 60\,\%.
+
+\paragraph{Pelos.} En 30 de las 140 imágenes de entrenamiento se detecta pelo en más del 10\,\% de la imagen; ese es el conjunto ``con pelos'' de la hipótesis~1. La figura~\ref{fig:pelos} muestra el resultado en una imagen con muchos pelos y en una sin pelos con red de pigmento marcada: el cierre reconstruye sólo los píxeles de pelo, mientras que la mediana suaviza toda la imagen, incluidas la red y el borde de la lesión. El filtro de forma es lo que evita borrar la red: en IMD200, que no tiene pelos, el umbral solo marca como pelo el 28\,\% de la lesión; con las condiciones de largo y ancho, el 14\,\%, y agregando el eje mayor, el 1\,\%, sin cambios apreciables en las imágenes con pelos (figura~\ref{fig:filtro-forma} del anexo).
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{m1_pelos}
+  \caption{Remoción de pelos en una imagen con muchos pelos (IMD003) y en una sin pelos con red de pigmento (IMD200): original, pelos detectados, cierre con \emph{inpainting} y filtro de mediana.}
+  \label{fig:pelos}
+\end{figure}
+
+\pendiente{Hipótesis 1: Dice de la segmentación sin quitar pelos, con mediana y con cierre en las imágenes con pelos (cuando M3 esté listo).}
+
+\pendiente{M2: tabla calidad $\rightarrow$ tasa de compresión, PSNR y SSIM.}
 
 \subsection{Segmentación}
 \pendiente{M3: Dice de cada método en entrenamiento (para la elección) y del elegido en prueba; ejemplos buenos y malos con ambos contornos.}
