@@ -40,8 +40,36 @@ Las imágenes se dividieron en un conjunto de entrenamiento (70\,\%, 140 imágen
 
 \subsubsection{Análisis exploratorio y mejoramiento}
 % Módulo: M1
-Los histogramas de cada canal (RGB y HSV) dentro de la lesión y en la piel se usan para elegir el canal con más contraste. Las esquinas oscuras del viñeteo se detectan con un umbral y etiquetando las regiones conectadas al borde de la imagen, y se excluyen. Para los pelos se aplica a cada canal un cierre morfológico con elementos estructurantes lineales en varias orientaciones; los píxeles en los que el cierre aumenta el valor por encima de un umbral se marcan como pelo y se reconstruyen a partir de sus vecinos.
-\pendiente{Parámetros elegidos (tabla) y figura: original, máscara de pelos, resultado.}
+\textbf{Análisis exploratorio.} Con las imágenes de entrenamiento se eligió el canal con más contraste entre lesión y piel: en cada imagen se tomaron 2000 píxeles de la lesión (máscara de PH2) y 2000 de piel, y se calculó el área bajo la curva ROC (AUC) de separarlos con un umbral sobre cada canal (R, G, B, H, S, V, L de Lab y gris). También se estimaron valores de referencia en HSV de cada color a partir de las máscaras de color que PH2 incluye en 27 imágenes.
+
+\textbf{Viñeteo.} Las esquinas oscuras que deja la lente circular se excluyen con una máscara de píxeles válidos. No se usó un umbral fijo de brillo, porque el brillo de las esquinas varía mucho entre imágenes ($V$ entre 0,13 y 0,77) y un umbral que las capture a todas captura también zonas oscuras de 124 de las 140 lesiones de entrenamiento; además, en 50 imágenes la lesión toca el borde. En cambio se aprovecha que la viñeta es circular y centrada: se calcula la mediana de $V$ en anillos concéntricos de 4 píxeles y la viñeta empieza en el primer anillo cuya mediana cae por debajo del 60\,\% del anillo más brillante (figura~\ref{fig:vineta}). La mediana no se ve afectada por una lesión que ocupa sólo una parte del anillo. Para lesiones muy grandes, que ocupan anillos completos, se impone que la viñeta no empiece antes del 80\,\% de la semidiagonal de la imagen.
+
+\textbf{Pelos.} Se detectan con un cierre morfológico del gris con elementos estructurantes lineales de 21 píxeles en 12 orientaciones (cada \ang{15}), tomando el máximo de los cierres: se rellena toda zona oscura que mida menos de 21 píxeles en alguna dirección. Los píxeles donde la diferencia entre el cierre y la imagen original (\emph{black-hat}) supera 0,10 son candidatos \parencite{lee1997}. Como la red de pigmento y los glóbulos también son oscuros y finos, sólo se conservan las regiones con forma de pelo: esqueleto de al menos 60 píxeles, ancho medio (área/largo del esqueleto) de a lo sumo 8 píxeles y eje mayor de al menos 80 píxeles. Los píxeles de pelo se reconstruyen por \emph{inpainting} \parencite{telea2004} y el resto de la imagen no se modifica. Para la hipótesis~1 se compara con no quitar los pelos y con un filtro de mediana de $9\times9$ por canal. La tabla~\ref{tab:param-m1} resume los parámetros.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=0.85\textwidth]{m1_vineta}
+  \caption{Detección del viñeteo. Izquierda: mediana del brillo $V$ en anillos concéntricos para una imagen típica (IMD002) y una con la lesión tocando el borde (IMD058); las líneas verticales marcan el radio detectado. Derecha: límite de la zona válida sobre ambas imágenes.}
+  \label{fig:vineta}
+\end{figure}
+
+\begin{table}[h]
+  \centering\small
+  \begin{tabular}{@{}lll@{}}
+    \toprule
+    Etapa & Parámetro & Valor \\
+    \midrule
+    Viñeta & Anillo / umbral / radio mínimo & 4 px / 0,6 del máximo / 0,8 semidiagonal \\
+    Pelos  & Elemento estructurante & segmento de 21 px, 12 orientaciones \\
+           & Umbral del \emph{black-hat} & 0,10 \\
+           & Forma: largo / ancho / eje mayor & $\ge 60$ px / $\le 8$ px / $\ge 80$ px \\
+           & Reconstrucción & \emph{inpainting} de Telea, radio 5 px \\
+    Comparación & Filtro de mediana & $9\times9$ por canal \\
+    \bottomrule
+  \end{tabular}
+  \caption{Parámetros del mejoramiento (módulo M1), elegidos con el conjunto de entrenamiento.}
+  \label{tab:param-m1}
+\end{table}
 
 \subsubsection{Compresión y descompresión}
 % Módulo: M2
