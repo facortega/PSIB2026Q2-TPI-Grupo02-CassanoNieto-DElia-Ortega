@@ -21,25 +21,45 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from skimage import io                                    # AGREGADO (M0): leer los .bmp
+from skimage.util import img_as_float                     # AGREGADO (M0): uint8 -> float [0, 1]
+from sklearn.model_selection import train_test_split      # AGREGADO (M0): partición estratificada
 
 CARPETA_DATOS = Path(__file__).resolve().parents[2] / "datos"   # carpeta datos/ del repo
 CARPETA_PH2 = CARPETA_DATOS / "PH2Dataset"
-CARPETA_IMAGENES = CARPETA_PH2 / "PH2 Dataset images"          # VERIFICAR con la descarga
-TABLA_PH2 = CARPETA_PH2 / "PH2_dataset.txt"                    # VERIFICAR (también viene .xlsx)
+CARPETA_IMAGENES = CARPETA_PH2 / "PH2 Dataset images"          # VERIFICADO con la descarga
+TABLA_PH2 = CARPETA_PH2 / "PH2_dataset.txt"                    # VERIFICADO (también viene .xlsx)
 PARTICION = CARPETA_DATOS / "particion.csv"                    # se genera con armar_particion()
 
 # Vocabulario común a todo el repo. El orden de COLORES es el de los códigos 1 a 6 de PH2
-# (VERIFICAR en la documentación de la base).
+# (VERIFICADO con las leyendas al final de PH2_dataset.txt: 1 White, 2 Red, 3 Light-Brown,
+# 4 Dark-Brown, 5 Blue-Gray, 6 Black).
 COLORES = ("blanco", "rojo", "marron_claro", "marron_oscuro", "azul_grisaceo", "negro")
 ESTRUCTURAS = ("red_pigmento", "puntos_globulos", "estrias", "regresion", "velo")
 DIAGNOSTICOS = {0: "nevo común", 1: "nevo atípico", 2: "melanoma"}
 
 # ------------------------------ Parámetros ------------------------------
-# PENDIENTE (M0): decidir y justificar en el informe (devolución: "acotar la
-# cantidad de imágenes"). Por ejemplo: todas las de 0 y 2 y una parte de las de 1,
-# o sólo las que tienen anotados todos los criterios.
+# DECIDIDO (M0): se usan las 200 imágenes de PH2 (ver DIAGNOSTICOS_INCLUIDOS).
+# El recorte que pidió la devolución se hace en los objetivos (la comparación con
+# JPEG queda como objetivo de máxima), no en la cantidad de imágenes.
 FRACCION_PRUEBA = 0.30   # fracción de imágenes que se reservan para la evaluación final
 SEMILLA = 0              # para que la partición sea siempre la misma
+
+# AGREGADO (M0): diagnósticos que entran al trabajo.
+# DECIDIDO: (0, 1, 2) = las 200 imágenes. Si se cambia, hay que regenerar particion.csv.
+DIAGNOSTICOS_INCLUIDOS = (0, 1, 2)
+
+# AGREGADO (M0): códigos de PH2_dataset.txt (leyendas al final del archivo).
+#   Estructuras: A = Absent, T = Typical, AT = Atypical, P = Present.
+#   DECIDIDO para el criterio D adaptado:
+#     - red de pigmento: cuenta SÓLO si es atípica ("AT"). La regla ABCD original cuenta
+#       su presencia, pero en PH2 las 200 imágenes tienen red (T o AT), así que eso no
+#       distingue nada; la red atípica es la que se asocia al melanoma.
+#       Resultado: 0 nevos comunes, 77/80 atípicos y 39/40 melanomas con red atípica.
+#     - el resto de las estructuras: todo lo que NO es "A" cuenta como presente.
+CODIGO_AUSENTE = "A"
+CODIGO_ATIPICA = "AT"
+COLUMNAS_TXT = ("asimetria", *ESTRUCTURAS)   # orden de las columnas separadas por "|" en el .txt
 
 
 class FaltanDatos(Exception):
@@ -61,8 +81,9 @@ class Caso:
     def sospechosa(self):
         """Etiqueta binaria del trabajo: True si NO es un nevo común.
 
-        PENDIENTE (M0): confirmar con el grupo que esta es la definición
-        (anteproyecto: "lesiones sospechosas" vs. "lunares comunes").
+        DECIDIDO (M0): sospechosa = nevo atípico o melanoma (120 imágenes);
+        no sospechosa = nevo común (80). Es la pregunta del anteproyecto:
+        distinguir lesiones sospechosas de lunares comunes.
         """
         return self.diagnostico > 0
 
@@ -90,38 +111,98 @@ def leer_tabla_ph2():
     con `colores` como texto con los nombres separados por espacios
     (p. ej. "marron_claro marron_oscuro") y las estructuras en True/False.
 
-    PENDIENTE (M0):
-      - [ ] Abrir PH2_dataset.txt (o el .xlsx) y ver cómo están codificadas las
+    Hecho (M0):
+      - [x] Abrir PH2_dataset.txt (o el .xlsx) y ver cómo están codificadas las
             columnas: separadores, filas de encabezado, códigos de diagnóstico,
             de asimetría, de colores y de cada estructura (A/P, T/AT...).
-      - [ ] Decidir qué cuenta como "presente" en cada estructura y anotarlo
+      - [x] Decidir qué cuenta como "presente" en cada estructura y anotarlo
             en el cuaderno (lo usa el criterio D adaptado).
-      - [ ] Devolver la tabla con las columnas de arriba.
+      - [x] Devolver la tabla con las columnas de arriba.
     """
     if not hay_datos():
         raise FaltanDatos("todavía no está la base en datos/PH2Dataset/ (ver datos/LEEME.md)")
-    raise NotImplementedError("M0: falta programar leer_tabla_ph2()")
+
+    # AGREGADO (M0) ------------------------------------------------------------
+    # Formato de cada fila (separadores "||" entre bloques y "|" dentro del bloque de criterios):
+    # || IMD003 || <histológico> || 0 || 0 | T | A | A | A | A || 3  4 ||
+    #     nombre    (casi vacío)   clín.  asim. + 5 estructuras     colores
+    # El archivo está en latin-1 (por el "PH²"), tiene un encabezado y al final las leyendas:
+    # sólo se toman las filas que empiezan con "|| IMD".
+    filas = []
+    with open(TABLA_PH2, encoding="latin-1") as f:
+        for linea in f:
+            if not linea.strip().startswith("|| IMD"):
+                continue
+            bloques = [b.strip() for b in linea.strip().strip("|").split("||")]
+            nombre, _histologico, clinico, criterios, codigos_color = bloques
+            valores = [v.strip() for v in criterios.split("|")]
+            fila = {"nombre": nombre, "diagnostico": int(clinico)}
+            for columna, valor in zip(COLUMNAS_TXT, valores):
+                if columna == "asimetria":
+                    fila[columna] = int(valor)
+                elif columna == "red_pigmento":                  # DECIDIDO: sólo la red atípica
+                    fila[columna] = valor == CODIGO_ATIPICA
+                else:
+                    fila[columna] = valor != CODIGO_AUSENTE
+            # Colores: códigos 1-6 separados por espacios -> nombres de COLORES
+            fila["colores"] = " ".join(COLORES[int(c) - 1] for c in codigos_color.split())
+            filas.append(fila)
+
+    tabla = pd.DataFrame(filas)
+    if len(tabla) != 200:   # PH2 tiene 200 imágenes: si no, el formato cambió
+        raise ValueError(f"se leyeron {len(tabla)} filas de PH2_dataset.txt (tendrían que ser 200)")
+    return tabla
+    # --------------------------------------------------------------------------
 
 
 def seleccionar_subconjunto(tabla):
     """Filtra la tabla según el alcance acotado del trabajo.
 
-    PENDIENTE (M0): aplicar el criterio decidido en Parámetros. Mientras no
-    se decida, devolver la tabla completa está bien.
+    DECIDIDO (M0): las 200 imágenes (DIAGNOSTICOS_INCLUIDOS = (0, 1, 2)).
     """
-    raise NotImplementedError("M0: falta programar seleccionar_subconjunto()")
+    # AGREGADO (M0): filtra por DIAGNOSTICOS_INCLUIDOS (ver Parámetros)
+    return tabla[tabla["diagnostico"].isin(DIAGNOSTICOS_INCLUIDOS)].reset_index(drop=True)
 
 
 def cargar_caso(nombre, tabla=None):
     """Lee la imagen, la máscara y las anotaciones de una imagen de PH2.
 
-    PENDIENTE (M0):
-      - [ ] Ubicar la imagen dermatoscópica y la máscara de la lesión dentro de
+    Hecho (M0):
+      - [x] Ubicar la imagen dermatoscópica y la máscara de la lesión dentro de
             CARPETA_IMAGENES/<nombre>/ (ver nombres de subcarpetas en la descarga).
-      - [ ] Imagen en float [0, 1] (skimage.util.img_as_float) y máscara en bool.
-      - [ ] Completar las anotaciones con la fila de `tabla` (si es None, leerla).
+      - [x] Imagen en float [0, 1] (skimage.util.img_as_float) y máscara en bool.
+      - [x] Completar las anotaciones con la fila de `tabla` (si es None, leerla).
     """
-    raise NotImplementedError("M0: falta programar cargar_caso()")
+    # AGREGADO (M0) ------------------------------------------------------------
+    # Estructura de la descarga (verificada):
+    #   <nombre>/<nombre>_Dermoscopic_Image/<nombre>.bmp   imagen RGB uint8
+    #   <nombre>/<nombre>_lesion/<nombre>_lesion.bmp       máscara (ya viene en bool)
+    # Ojo: no todas las imágenes miden 768 x 560 (hay 24 tamaños distintos; p. ej. IMD002
+    # es 765 x 572). Ningún módulo debe asumir un tamaño fijo.
+    if tabla is None:
+        tabla = leer_tabla_ph2()
+    carpeta = CARPETA_IMAGENES / nombre
+    imagen = img_as_float(io.imread(carpeta / f"{nombre}_Dermoscopic_Image" / f"{nombre}.bmp"))
+    imagen = imagen[..., :3]                                   # por si algún .bmp trae canal alfa
+    mascara = io.imread(carpeta / f"{nombre}_lesion" / f"{nombre}_lesion.bmp")
+    if mascara.ndim == 3:                                      # por si alguna máscara viene en RGB
+        mascara = mascara[..., 0]
+    mascara = mascara > 0
+
+    fila = tabla.loc[tabla["nombre"] == nombre]
+    if fila.empty:
+        raise KeyError(f"{nombre} no está en la tabla de PH2")
+    fila = fila.iloc[0]
+    return Caso(
+        nombre=nombre,
+        imagen=imagen,
+        mascara_ref=mascara,
+        diagnostico=int(fila["diagnostico"]),
+        asimetria=int(fila["asimetria"]),
+        colores=fila["colores"].split(),
+        estructuras={e: bool(fila[e]) for e in ESTRUCTURAS},
+    )
+    # --------------------------------------------------------------------------
 
 
 def armar_particion(tabla):
@@ -132,9 +213,20 @@ def armar_particion(tabla):
     vez y se sube al repo, así todos usan la misma.
     Columnas de particion.csv: nombre, diagnostico, conjunto ("entrenamiento"/"prueba").
 
-    PENDIENTE (M0): programarla (sklearn.model_selection.train_test_split con stratify).
+    Hecho (M0): sklearn.model_selection.train_test_split con stratify.
     """
-    raise NotImplementedError("M0: falta programar armar_particion()")
+    # AGREGADO (M0): estratificada por diagnóstico y reproducible (SEMILLA)
+    entrenamiento, prueba = train_test_split(
+        tabla[["nombre", "diagnostico"]],
+        test_size=FRACCION_PRUEBA,
+        stratify=tabla["diagnostico"],
+        random_state=SEMILLA,
+    )
+    particion = pd.concat([entrenamiento.assign(conjunto="entrenamiento"),
+                           prueba.assign(conjunto="prueba")])
+    particion = particion.sort_values("nombre").reset_index(drop=True)
+    particion.to_csv(PARTICION, index=False)
+    return particion
 
 
 # ----------------- Ya está hecho: no hace falta tocarlo -----------------
