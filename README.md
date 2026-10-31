@@ -186,7 +186,7 @@ claros. Un único commit final o aportes desbalanceados **bajan la nota**.
 git init -b main
 git add .
 git commit -m "Esqueleto del TP: estructura, contratos entre módulos y verificación"
-git remote add origin <link del repositorio>
+git remote add origin https://github.com/facortega/PSIB2026Q2-TPI-Grupo02-CassanoNieto-DElia-Ortega.git
 git push -u origin main
 ```
 
