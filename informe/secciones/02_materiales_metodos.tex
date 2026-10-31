@@ -5,9 +5,31 @@
 \label{sec:base}
 % Módulo: M0
 
-Se usa la base PH2 \parencite{mendonca2013}, del Hospital Pedro Hispano (Portugal). Contiene 200 imágenes dermatoscópicas RGB de $768\times560$ píxeles, adquiridas con el mismo equipo y en condiciones uniformes: 80 nevos comunes, 80 nevos atípicos y 40 melanomas. Incluye el diagnóstico clínico e histológico, la máscara de la lesión dibujada a mano y la evaluación de un dermatólogo de cada criterio: asimetría (0, 1 o 2 ejes), presencia de cada uno de los seis colores y presencia de red de pigmento, puntos y glóbulos, estrías, áreas de regresión y velo azul-blanquecino. Eso permite validar el algoritmo paso a paso: la segmentación contra la máscara, A y C contra el dermatólogo, la textura contra las estructuras anotadas y la clasificación contra el diagnóstico.
+Se usa la base PH2 \parencite{mendonca2013}, del Hospital Pedro Hispano (Portugal). Contiene 200 imágenes dermatoscópicas RGB de 8 bits por canal, adquiridas con el mismo equipo y en condiciones uniformes: 80 nevos comunes, 80 nevos atípicos y 40 melanomas. El tamaño de las imágenes no es fijo: hay 24 tamaños distintos, los más frecuentes de $767\times576$ y $768\times576$ píxeles, por lo que ninguna etapa del algoritmo supone un tamaño determinado. La lesión ocupa entre el 3\,\% y el 98\,\% de la imagen (mediana 23\,\%), y en 50 imágenes toca el borde, es decir, no se ve completa. Cada imagen viene con la máscara de la lesión dibujada a mano y con la evaluación de un dermatólogo: diagnóstico clínico, asimetría (0, 1 o 2 ejes), colores presentes (de los seis de la regla) y presencia de red de pigmento (típica o atípica), puntos y glóbulos, estrías, áreas de regresión y velo azul-blanquecino. En 27 imágenes se incluyen además máscaras de las regiones de cada color. Eso permite validar el algoritmo paso a paso: la segmentación contra la máscara, A y C contra el dermatólogo, la textura contra las estructuras anotadas y la clasificación contra el diagnóstico.
 
-\pendiente{Alcance acotado (devolución): qué imágenes se usan y por qué; definición de ``sospechosa''; partición estratificada entrenamiento/prueba (proporción, semilla). Tabla con la cantidad de imágenes por diagnóstico en cada conjunto. Aclarar que todos los umbrales se eligen sólo con entrenamiento.}
+Se trabaja con las 200 imágenes. Se considera \emph{sospechosa} toda lesión con diagnóstico de nevo atípico o melanoma (120 imágenes) y \emph{no sospechosa} a los nevos comunes (80), lo que responde a la pregunta del anteproyecto: distinguir las lesiones que ameritan control de los lunares comunes. El recorte de alcance sugerido en la devolución se aplica sobre los objetivos: la evaluación completa del algoritmo sobre imágenes comprimidas queda como objetivo de máxima.
+
+Para el criterio D adaptado se cuenta la cantidad de estructuras presentes según el dermatólogo (0 a 5). La red de pigmento se cuenta sólo cuando es atípica. En la regla original se cuenta su presencia \parencite{nachbar1994}, pero en PH2 todas las lesiones tienen red (típica o atípica), así que su mera presencia no distingue entre lesiones; se usa en cambio la red atípica, que es la que se asocia al melanoma \pendiente{citar}. Con esta definición, la red atípica no aparece en ningún nevo común y sí en 77 de los 80 atípicos y 39 de los 40 melanomas, y el D medio es 0,65 en los nevos comunes, 1,79 en los atípicos y 3,12 en los melanomas.
+
+Las imágenes se dividieron en un conjunto de entrenamiento (70\,\%, 140 imágenes) y uno de prueba (30\,\%, 60 imágenes), estratificados por diagnóstico y con semilla fija para que la partición sea reproducible (tabla~\ref{tab:particion}). Todos los umbrales y parámetros se eligen únicamente con el conjunto de entrenamiento; el de prueba se usa sólo para las métricas finales.
+
+\begin{table}[h]
+  \centering\small
+  \begin{tabular}{@{}lccc|c@{}}
+    \toprule
+    Conjunto & Nevo común & Nevo atípico & Melanoma & Total \\
+    \midrule
+    Entrenamiento & 56 & 56 & 28 & 140 \\
+    Prueba        & 24 & 24 & 12 & 60 \\
+    \midrule
+    Total         & 80 & 80 & 40 & 200 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Cantidad de imágenes por diagnóstico en cada conjunto.}
+  \label{tab:particion}
+\end{table}
+
+\pendiente{Figura con un ejemplo de cada diagnóstico y el contorno de su máscara (\texttt{m0\_ejemplos}, del cuaderno de M0).}
 
 \subsection{Esquema del algoritmo}
 \label{sec:esquema}
