@@ -35,7 +35,31 @@
 
 \pendiente{Hipótesis 1: Dice de la segmentación sin quitar pelos, con mediana y con cierre en las imágenes con pelos (cuando M3 esté listo).}
 
-\pendiente{M2: tabla calidad $\rightarrow$ tasa de compresión, PSNR y SSIM.}
+\paragraph{Compresión.} La tabla~\ref{tab:compresion} resume la compresión JPEG. Incluso a calidad 95 el archivo ocupa unas 8 veces menos, con una pérdida imperceptible (PSNR mayor a 40\,dB, SSIM de 0,97 y $\Delta E$ por debajo de 2,3). La lesión pierde siempre un poco más que la imagen completa (PSNR alrededor de 1\,dB menor), porque concentra el detalle fino que la cuantización descarta. El SSIM cae más que el PSNR al bajar la calidad (de 0,97 a 0,70), lo que indica que lo más afectado es la estructura local, es decir, la textura; y el cambio de color se vuelve perceptible desde calidad 75. A calidad 10 la red de pigmento se reemplaza por bloques de $8\times8$ (figura~\ref{fig:compresion}). Se espera entonces que la segmentación resista bien la compresión y que la textura (D) y el borde (B) sean los criterios más sensibles. \pendiente{Objetivo de máxima: Dice, sensibilidad y especificidad en función de la calidad, si se llega a hacer.}
+
+\begin{table}[h]
+  \centering\small
+  \begin{tabular}{@{}cccccc@{}}
+    \toprule
+    Calidad & Tasa & PSNR (dB) & PSNR lesión (dB) & SSIM & $\Delta E$ lesión \\
+    \midrule
+    95 & 8,2   & 41,1 & 40,7 & 0,97 & 1,9 \\
+    75 & 23,7  & 35,9 & 34,9 & 0,89 & 2,7 \\
+    50 & 39,7  & 34,5 & 33,4 & 0,85 & 3,2 \\
+    25 & 67,7  & 32,8 & 31,7 & 0,80 & 3,9 \\
+    10 & 121,8 & 29,6 & 28,7 & 0,70 & 5,8 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Compresión JPEG: mediana de cada métrica sobre las 140 imágenes de entrenamiento.}
+  \label{tab:compresion}
+\end{table}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\textwidth]{m2_detalle}
+  \caption{Detalle de la red de pigmento de IMD200 en la imagen original y comprimida a calidades 75, 25 y 10 (entre paréntesis, la tasa de compresión).}
+  \label{fig:compresion}
+\end{figure}
 
 \subsection{Segmentación}
 \pendiente{M3: Dice de cada método en entrenamiento (para la elección) y del elegido en prueba; ejemplos buenos y malos con ambos contornos.}

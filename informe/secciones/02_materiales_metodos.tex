@@ -73,7 +73,7 @@ Las imágenes se dividieron en un conjunto de entrenamiento (70\,\%, 140 imágen
 
 \subsubsection{Compresión y descompresión}
 % Módulo: M2
-\pendiente{Las imágenes se comprimen con JPEG a distintas calidades y se descomprimen; se mide la tasa de compresión, el PSNR (en toda la imagen y dentro de la lesión) y el SSIM \parencite{wang2004}.}
+Cada imagen de entrenamiento se comprimió con JPEG a cinco calidades (95, 75, 50, 25 y 10) y se descomprimió, todo en memoria. Se midieron la tasa de compresión (bytes de la imagen sin comprimir, a 8 bits por canal, sobre bytes del JPEG); el PSNR, $10\log_{10}(1/\mathrm{MSE})$ con la señal en $[0,1]$, en toda la imagen y sólo dentro de la lesión; el SSIM, que compara brillo, contraste y estructura en ventanas locales \parencite{wang2004}, y la diferencia de color media dentro de la lesión en el espacio Lab ($\Delta E$, fórmula CIE76), para la que 2,3 es el umbral aproximado de percepción. Cada calidad se resume con la mediana sobre las 140 imágenes. De acuerdo con la devolución del anteproyecto, repetir el algoritmo completo sobre las imágenes comprimidas queda como objetivo de máxima.
 
 \subsection{Segmentación}
 \label{sec:segmentacion}
