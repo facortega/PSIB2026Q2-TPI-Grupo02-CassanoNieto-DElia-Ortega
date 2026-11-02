@@ -23,7 +23,7 @@ Un TDS menor a 4,75 indica una lesión benigna; entre 4,75 y 5,45, una lesión s
 
 \paragraph{Zonas de la lesión.} \pendiente{(Devolución) Por qué mirar por separado el centro, la periferia y la interfase con la piel: qué estructuras de la regla aparecen típicamente en cada zona (red de pigmento atípica y estrías en la periferia, velo y regresión en el centro...) y qué indica un cambio abrupto entre lesión y piel. Citar.}
 
-\paragraph{Compresión.} \pendiente{JPEG en dos o tres oraciones (DCT por bloques de 8$\times$8, cuantización, submuestreo de croma) y por qué puede afectar al color y a la textura \parencite{wallace1991}.}
+\paragraph{Compresión.} JPEG es el formato con pérdida más usado para guardar y transmitir fotografías, incluidas las dermatoscópicas en teledermatología \parencite{wallace1991}. Pasa la imagen a brillo y color (YCbCr) y guarda el color a la mitad de resolución en cada eje (submuestreo 4:2:0); divide el brillo y el color en bloques de $8\times8$, les aplica la transformada discreta del coseno y cuantiza los coeficientes, descartando sobre todo las frecuencias altas. Un parámetro de calidad (de 1 a 100) controla cuánto se cuantiza. Lo que se pierde es justamente el detalle fino y parte del color, es decir, la red de pigmento, el borde y los colores que usa la regla ABCD.
 
 \subsection{Estado del arte}
 \label{sec:estado-arte}
