@@ -1,0 +1,5 @@
+comparación,gana watershed,gana el otro,empates,p,¿significativa?
+watershed vs. crecimiento,68,59,13,0.4779219422067188,no
+watershed vs. otsu,44,87,9,0.00021577652478126013,sí
+watershed vs. chan_vese,45,84,11,0.000755890272456336,sí
+watershed vs. kmeans,84,52,4,0.007623827173866308,sí
