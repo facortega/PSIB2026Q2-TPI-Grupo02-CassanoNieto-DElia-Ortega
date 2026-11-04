@@ -13,7 +13,6 @@ import time
 import cv2
 import numpy as np
 from scipy import ndimage as ndi
-from scipy import stats
 from skimage import color, filters, segmentation, transform
 from sklearn.cluster import KMeans
 
@@ -51,9 +50,6 @@ SEMILLA_KMEANS = 0          # semilla fija para que dé siempre lo mismo
 MU = 0.1                    # cuánto se penaliza el largo del contorno (más alto = más suave)
 ITERACIONES_CV = 200
 ESCALA_CV = 0.25            # se resuelve en la imagen reducida: a tamaño completo es muy lento
-
-# Comparación de métodos (cuaderno)
-EMPATE = 0.001              # diferencias de Dice menores a esto cuentan como empate
 
 
 # ----------------------------- AGREGADO (M3) -----------------------------
@@ -242,6 +238,21 @@ def dice(a, b):
     return float(2 * np.logical_and(a, b).sum() / total)
 
 
+def conteo_pixeles(mascara, referencia):
+    """Matriz de confusión de una imagen, en píxeles, contra la máscara de PH2.
+
+    Devuelve un dict con:
+        vp  lesión que el programa marcó como lesión (bien detectada)
+        fp  piel que el programa marcó como lesión (detectada por error)
+        fn  lesión que el programa dejó como piel (no detectada)
+        vn  piel que el programa dejó como piel
+    El Dice sale de acá: 2 vp / (2 vp + fp + fn).
+    """
+    a, b = np.asarray(mascara, bool), np.asarray(referencia, bool)
+    return {"vp": int((a & b).sum()), "fp": int((a & ~b).sum()),
+            "fn": int((~a & b).sum()), "vn": int((~a & ~b).sum())}
+
+
 # ----------------------- Para comparar métodos (cuaderno) -----------------------
 
 def describir(parametros):
@@ -269,18 +280,3 @@ def evaluar_imagen(img, valida, referencia, grilla, sigmas, radios):
                                       "radio_apertura": radio_apertura, "radio_cierre": radio_cierre,
                                       "dice": dice(mascara, referencia), "segundos": segundos})
     return filas
-
-
-def prueba_de_los_signos(dice_a, dice_b):
-    """Compara dos métodos imagen por imagen. Devuelve (gana_a, gana_b, empates, p).
-
-    Cuenta en cuántas imágenes gana cada uno (sin contar empates). Si fueran igual de
-    buenos, cada imagen sería como tirar una moneda; `p` es la probabilidad de un reparto
-    tan desparejo como el observado o más. Con p < 0,05 la diferencia no parece casualidad.
-    """
-    diferencia = np.asarray(dice_a, float) - np.asarray(dice_b, float)
-    gana_a = int((diferencia > EMPATE).sum())
-    gana_b = int((diferencia < -EMPATE).sum())
-    empates = len(diferencia) - gana_a - gana_b
-    p = stats.binomtest(gana_a, gana_a + gana_b, 0.5).pvalue if gana_a + gana_b > 0 else 1.0
-    return gana_a, gana_b, empates, float(p)
