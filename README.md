@@ -38,10 +38,11 @@ python main.py --rehacer     # vuelve a procesar las imágenes (si cambió algú
 3. Interfaz gráfica:
 
 ```bash
-streamlit run interfaz/app.py
+python interfaz/app.py
 ```
 
 Funciona aunque falte PH2 o algún módulo: usa una lesión inventada y avisa qué etapas faltan.
+Usa `tkinter`, que viene con Python. En macOS con Python de Homebrew hay que instalarlo aparte (`brew install python-tk`).
 
 ## Qué hay en el repositorio
 
@@ -67,7 +68,7 @@ PSIB2026Q2-TPI-Grupo02-CassanoNieto-DElia-Ortega/
 │       ├── lesion_de_prueba.py           lesiones inventadas para probar sin PH2
 │       └── graficos.py                   estilo común de figuras y tablas
 │
-├── interfaz/app.py               interfaz gráfica (Streamlit)
+├── interfaz/app.py               interfaz gráfica (tkinter)
 ├── datos/                        PH2 (no se sube) y la partición (sí se sube)
 ├── resultados/                   tabla de características que genera main.py
 ├── informe/                      el informe en LaTeX (Overleaf)

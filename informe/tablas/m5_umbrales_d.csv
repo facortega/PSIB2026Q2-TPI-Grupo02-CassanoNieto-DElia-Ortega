@@ -1,0 +1,3 @@
+umbrales,acierto exacto,error medio,D estimado = 5,kappa,AUC sospechosa
+cuantiles,0.319,0.971,5.25,0.084,0.748
+medianas,0.198,1.308,20.25,0.045,0.732
