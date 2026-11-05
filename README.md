@@ -41,7 +41,9 @@ python main.py --rehacer     # vuelve a procesar las imágenes (si cambió algú
 python interfaz/app.py
 ```
 
-Funciona aunque falte algún módulo y avisa qué etapas faltan. Sin PH2 se puede abrir una imagen propia.
+Procesa una imagen con los métodos elegidos en cada módulo (los mismos que usa `main.py`) y muestra
+cada etapa. Para estimar D y los umbrales del TDS usa `resultados/caracteristicas.csv`, que genera `main.py`.
+Sin PH2 se puede abrir una imagen propia.
 Usa `tkinter`, que viene con Python. En macOS con Python de Homebrew hay que instalarlo aparte (`brew install python-tk`).
 
 ## Qué hay en el repositorio

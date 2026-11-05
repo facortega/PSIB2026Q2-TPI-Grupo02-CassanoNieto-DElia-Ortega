@@ -5,14 +5,15 @@ Uso, desde la carpeta del repo:
     python interfaz/app.py
 
 1. Elegir una imagen de PH2 (conjunto de prueba) o una imagen propia.
-2. Elegir cómo se quitan los pelos y, cuando esté M3, el método de segmentación.
-3. Procesar: corre el algoritmo en segundo plano y muestra el avance en el registro.
-4. Ver los resultados: A, B, C, D, el TDS y la clasificación, comparados con PH2; los
-   ejes de simetría, el borde por sector y el mapa de colores; las zonas y los mapas de
-   textura; los atributos GLCM y los contrastes entre zonas.
+2. Procesar: corre el algoritmo en segundo plano y muestra el avance en el registro. Usa los
+   métodos que elegimos en cada módulo (el cierre para los pelos en M1, el crecimiento de
+   regiones en M3), los mismos que usa main.py: el usuario no elige métodos.
+3. Ver los resultados: A, B, C, D, el TDS, el TDS extendido y la clasificación, comparados
+   con PH2; los ejes de simetría, el borde por sector y el mapa de colores; las zonas y los
+   mapas de textura; los atributos GLCM y los contrastes entre zonas.
 
-Lo que todavía no está programado se avisa en el registro y la interfaz sigue con lo que
-haya. Mientras no esté M3 se usa la máscara de referencia de PH2, para poder ver M5 y M6.
+Si una etapa falla, el registro lo dice y la interfaz sigue con lo que se pueda calcular; si
+falla la segmentación, la imagen no se analiza (no se reemplaza por la máscara de PH2).
 La interfaz NO tiene lógica propia: sólo llama a las funciones de modulos/ (así lo que se
 ve es exactamente lo que se evalúa).
 
@@ -66,6 +67,10 @@ TABLA = Path(__file__).resolve().parents[1] / "resultados" / "caracteristicas.cs
 LADO_MAXIMO = 768   # píxeles: las imágenes propias se achican al tamaño de PH2
 TIPOS_IMAGEN = [("Imágenes", "*.png *.jpg *.jpeg *.bmp *.PNG *.JPG *.JPEG *.BMP"), ("Todos los archivos", "*.*")]
 TOTAL_PASOS = 6
+METODO_PELOS = "cierre"   # el elegido en M1; es el mismo que usa procesamiento_completo.procesar
+NOMBRES_METODO = {"ninguno": "ninguno", "mediana": "un filtro de mediana", "cierre": "un cierre morfológico",
+                  "otsu": "el umbral de Otsu", "crecimiento": "crecimiento de regiones", "watershed": "watershed",
+                  "kmeans": "k-means", "chan_vese": "Chan-Vese"}
 
 NOMBRES_GLCM = {"energia": "Energía", "entropia": "Entropía", "contraste": "Contraste", "idm": "Homogeneidad (IDM)",
                 "correlacion": "Correlación", "cluster_shade": "Cluster shade", "cluster_prominence": "Cluster prominence"}
@@ -140,21 +145,6 @@ def sistema_en_modo_oscuro():
         return "dark" in r.stdout
     except Exception:   # Sin la clave, el comando o el escritorio: se usa el tema claro
         return False
-
-
-def hay_segmentacion():
-    """Averigua si M3 ya está programado, para habilitar la elección de método.
-
-    Entra: nada
-    Sale : bool; False sólo si segmentar() todavía no está programada
-    """
-    try:
-        segmentacion.segmentar(np.zeros((8, 8, 3)), np.ones((8, 8), bool))
-    except NotImplementedError:
-        return False
-    except Exception:   # Está programada; a una imagen de 8 x 8 no tiene por qué poder segmentarla
-        pass
-    return True
 
 
 def ajuste_entrenamiento():
@@ -274,7 +264,6 @@ class Aplicacion(tk.Tk):
         self.version = 0               # Para descartar resultados de una imagen anterior
         self.procesando = False
         self.fotos = {}                # Tk borra las fotos si nadie guarda una referencia
-        self.hay_m3 = hay_segmentacion()
 
         self._armar_ventana()
         self.protocol("WM_DELETE_WINDOW", self.destroy)
@@ -473,14 +462,8 @@ class Aplicacion(tk.Tk):
         """
         marco = ttk.LabelFrame(padre, text=" 2 · Mejoramiento (M1) ", padding=12)
         marco.pack(fill="x", pady=(10, 0))
-        fila = ttk.Frame(marco)
-        fila.pack(fill="x")
-        ttk.Label(fila, text="Quitar pelos:", style="Sub.TLabel").pack(side="left")
-        self.var_pelos = tk.StringVar(value="cierre")
-        cmb = ttk.Combobox(fila, textvariable=self.var_pelos, values=mejoramiento.METODOS_PELOS, state="readonly", width=12)
-        cmb.pack(side="left", padx=(8, 0))
-        cmb.bind("<<ComboboxSelected>>", lambda _: self._invalidar())
-        self.cmb_pelos = cmb
+        ttk.Label(marco, text=f"Pelos: se quitan con {NOMBRES_METODO[METODO_PELOS]}, el método elegido en M1.",
+                  style="Sub.TLabel", wraplength=370, justify="left").pack(anchor="w")
 
         imagenes = ttk.Frame(marco)
         imagenes.pack(anchor="w", pady=(8, 0))
@@ -495,24 +478,16 @@ class Aplicacion(tk.Tk):
         self.lbl_sin_pelos.grid(row=1, column=2, pady=(4, 0))
 
     def _armar_segmentacion(self, padre):
-        """Arma el paso 3: método de segmentación, deshabilitado mientras no esté M3.
+        """Arma el paso 3: qué método de segmentación usa el programa.
 
         Entra: padre   widget que lo contiene
         Sale : nada
         """
         marco = ttk.LabelFrame(padre, text=" 3 · Segmentación (M3) ", padding=12)
         marco.pack(fill="x", pady=(10, 0))
-        fila = ttk.Frame(marco)
-        fila.pack(fill="x")
-        ttk.Label(fila, text="Método:", style="Sub.TLabel").pack(side="left")
-        self.var_seg = tk.StringVar(value=segmentacion.METODO_ELEGIDO)
-        self.cmb_seg = ttk.Combobox(fila, textvariable=self.var_seg, values=segmentacion.METODOS, width=12,
-                                    state="readonly" if self.hay_m3 else "disabled")
-        self.cmb_seg.pack(side="left", padx=(8, 0))
-        self.cmb_seg.bind("<<ComboboxSelected>>", lambda _: self._invalidar())
-        texto = "" if self.hay_m3 else "M3 todavía no está programado: se usa la máscara de referencia de PH2."
-        self.lbl_seg = ttk.Label(marco, text=texto, style="Sub.TLabel", wraplength=370, justify="left")
-        self.lbl_seg.pack(anchor="w", pady=(8, 0))
+        ttk.Label(marco, text=f"La lesión se segmenta con {NOMBRES_METODO[segmentacion.METODO_ELEGIDO]}, "
+                              "el método elegido en M3.",
+                  style="Sub.TLabel", wraplength=370, justify="left").pack(anchor="w")
 
     def _armar_procesamiento(self, padre):
         """Arma el paso 4: el botón de procesar y el avance.
@@ -530,7 +505,7 @@ class Aplicacion(tk.Tk):
         self.lbl_estado.pack(anchor="w")
 
     def _armar_registro(self):
-        """Arma la pestaña Registro: el avance de cada etapa, y lo que falta programar.
+        """Arma la pestaña Registro: el avance de cada etapa y, si algo falla, el error.
 
         Entra: nada
         Sale : nada
@@ -687,7 +662,7 @@ class Aplicacion(tk.Tk):
         self._invalidar()
 
     def _invalidar(self):
-        """Borra los resultados, porque cambió la imagen o un método, y muestra la vista previa.
+        """Borra los resultados, porque cambió la imagen, y muestra la vista previa.
 
         Entra: nada
         Sale : nada
@@ -745,16 +720,15 @@ class Aplicacion(tk.Tk):
         self.texto.configure(state="disabled")
         self.pestanas.select(0)
         self._escribir(f"{self.titulo}\n\n")
-        datos = (self.version, self.img, self.ref, self.var_pelos.get(), self.var_seg.get())
+        datos = (self.version, self.img, self.ref)
         threading.Thread(target=self._trabajo, args=datos, daemon=True).start()
 
-    def _trabajo(self, version, img, ref, metodo_pelos, metodo_seg):
+    def _trabajo(self, version, img, ref):
         """Corre las etapas del algoritmo. Corre en otro hilo: sólo se comunica por la cola.
 
         Entra: version   int, para descartar el resultado si la imagen cambió mientras tanto
                img       imagen RGB float [0, 1]
-               ref       array bool con la máscara de referencia, o None
-               metodo_pelos, metodo_seg   str, métodos elegidos
+               ref       array bool con la máscara de referencia, o None (sólo para el Dice)
         Sale : nada; manda los avances y al final ("listo", version, resultados) a la cola
         """
         def avisar(*mensaje):
@@ -766,17 +740,15 @@ class Aplicacion(tk.Tk):
             self.cola.put((mensaje[0], version, *mensaje[1:]))
 
         def etapa(modulo, funcion, *args):
-            """Corre una función de un módulo; si falta programarla o falla, lo avisa en el registro.
+            """Corre una función de un módulo; si falla, lo avisa en el registro.
 
             Entra: modulo    str, módulo al que pertenece (p. ej. "M3")
                    funcion   la función a correr
                    *args     lo que recibe esa función
-            Sale : lo que devuelve la función, o None si falta programarla o falló
+            Sale : lo que devuelve la función, o None si falló
             """
             try:
                 return funcion(*args)
-            except NotImplementedError as e:
-                avisar("texto", f"  ⚠ {e}\n", "aviso")
             except Exception as e:   # que una etapa rota no frene a las demás
                 avisar("texto", f"  ✖ {modulo}: {type(e).__name__}: {e}\n", "error")
             return None
@@ -797,7 +769,7 @@ class Aplicacion(tk.Tk):
         inicio = time.perf_counter()
 
         paso(1, "Mejoramiento (M1)")
-        salida = etapa("M1", mejoramiento.mejorar, img, metodo_pelos)
+        salida = etapa("M1", mejoramiento.mejorar, img, METODO_PELOS)
         if salida is None:
             avisar("fallo", "No se pudo mejorar la imagen.")
             return
@@ -806,18 +778,16 @@ class Aplicacion(tk.Tk):
         res["v"] = mejoramiento.a_hsv(res["mejorada"])[..., 2]
 
         paso(2, "Segmentación (M3)")
-        res["automatica"] = etapa("M3", segmentacion.segmentar, res["mejorada"], res["valida"], metodo_seg)
-        res["mascara"] = res["automatica"] if res["automatica"] is not None else ref
-        if res["automatica"] is not None:
-            if ref is not None:
-                res["dice"] = etapa("M3", segmentacion.dice, res["automatica"], ref)
-            avisar("texto", f"  ✔ Método {metodo_seg}; Dice {numero(res['dice'], 3)}\n", "ok")
-        elif ref is not None:
-            avisar("texto", "  ⚠ Se sigue con la máscara de referencia\n", "aviso")
+        res["automatica"] = res["mascara"] = etapa("M3", segmentacion.segmentar, res["mejorada"], res["valida"])
         if res["mascara"] is None:
-            avisar("texto", "  ✖ Esta imagen no tiene máscara de referencia: hace falta M3 para analizarla\n", "error")
+            avisar("texto", "  ✖ Sin segmentación no se puede seguir con esta imagen\n", "error")
             avisar("listo", res, time.perf_counter() - inicio)
             return
+        if ref is not None:
+            res["dice"] = etapa("M3", segmentacion.dice, res["mascara"], ref)
+            avisar("texto", f"  ✔ Dice con la máscara de PH2: {numero(res['dice'], 3)}\n", "ok")
+        else:
+            avisar("texto", "  ✔ Lesión segmentada\n", "ok")
         m = res["mascara"]
 
         paso(3, "Criterios A, B y C (M4)")
@@ -863,7 +833,7 @@ class Aplicacion(tk.Tk):
         if res["tds"] is not None:
             avisar("texto", f"  ✔ TDS = {numero(res['tds'])}; TDS extendido = {numero(res['tds_extendido'])}\n", "ok")
         else:
-            avisar("texto", "  ⚠ El TDS necesita A, B, C y D: aparece cuando estén M4, M5 y M7, y la tabla de main.py\n", "aviso")
+            avisar("texto", "  ⚠ Sin TDS: hacen falta A, B, C y D (ver los avisos de arriba)\n", "aviso")
         avisar("listo", res, time.perf_counter() - inicio)
 
     def _revisar_cola(self):
@@ -1026,7 +996,7 @@ class Aplicacion(tk.Tk):
             texto, color = clasificar(res["tds"])
             self.lbl_clase.configure(text=texto, style=f"Clase{color}.TLabel")
         else:
-            self.lbl_clase.configure(text="Todavía no se puede clasificar: el registro dice qué falta.", style="ClaseSin.TLabel")
+            self.lbl_clase.configure(text="No se pudo clasificar: el registro dice qué falló.", style="ClaseSin.TLabel")
 
         def fila(nombre, calculado=None, ph2=None):
             """Agrega una fila a la tabla, con "—" donde no hay valor.
@@ -1080,7 +1050,7 @@ class Aplicacion(tk.Tk):
         res = self.res
         if res is None or all(res[k] is None for k in ("ejes", "gradientes", "colores")):
             grafico.mensaje("Procesá una imagen para ver los criterios." if res is None
-                            else "Acá van los ejes de simetría, el borde por sector y el mapa de colores, cuando esté M4.")
+                            else "No se pudieron calcular los criterios: el registro dice qué falló.")
             return
         grafico.limpiar()
         ejes = grafico.figura.subplots(1, 3)
