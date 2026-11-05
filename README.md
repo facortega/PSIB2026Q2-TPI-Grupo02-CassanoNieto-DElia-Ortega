@@ -41,7 +41,7 @@ python main.py --rehacer     # vuelve a procesar las imágenes (si cambió algú
 python interfaz/app.py
 ```
 
-Funciona aunque falte PH2 o algún módulo: usa una lesión inventada y avisa qué etapas faltan.
+Funciona aunque falte algún módulo y avisa qué etapas faltan. Sin PH2 se puede abrir una imagen propia.
 Usa `tkinter`, que viene con Python. En macOS con Python de Homebrew hay que instalarlo aparte (`brew install python-tk`).
 
 ## Qué hay en el repositorio
