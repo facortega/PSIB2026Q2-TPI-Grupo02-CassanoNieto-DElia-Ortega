@@ -56,7 +56,7 @@ def main():
         print(f"  {conjunto:14s} {len(grupo):4d} imágenes   Dice medio {grupo['dice'].mean():.3f}")
 
     tabla = pc.completar_d(tabla)
-    print(f"  Criterio D estimado con {tabla.attrs['atributo_d']}")
+    print("  Criterio D estimado por estructuras, con umbrales de entrenamiento")
 
     print("\n3. Resultados finales\n")
     try:
