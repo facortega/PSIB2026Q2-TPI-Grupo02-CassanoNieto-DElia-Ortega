@@ -114,6 +114,8 @@ def kappa_cohen(a, b):
     categorias = np.union1d(a, b)
     observado = (a == b).mean()
     esperado = sum((a == c).mean() * (b == c).mean() for c in categorias)
+    if esperado == 1:                 # los dos ponen siempre lo mismo: no hay nada que medir
+        return 1.0 if observado == 1 else 0.0
     return float((observado - esperado) / (1 - esperado))
 
 
