@@ -21,8 +21,10 @@ de uno a otro. El diseño es el mismo de la aplicación de pupilometría.
 
 PENDIENTE (interfaz):
   - [x] Ejes de simetría dibujados sobre la imagen y gradiente por sector.
-        VERIFICAR con M4 listo: _dibujar_ejes supone que el ángulo se mide desde las columnas.
+        Verificado con M4: fracciones_asimetria da el ángulo desde las columnas, como lo dibuja _dibujar_ejes.
   - [x] D estimado: umbrales leídos de resultados/caracteristicas.csv (se ajustan con entrenamiento).
+  - [x] TDS extendido y clasificación con los umbrales de Youden de M7 (también salen de esa tabla).
+  - [x] Mapa de colores con los colores de M4 y su leyenda.
   - [x] Subir una imagen propia.
   - [ ] Capturas para el informe (sección 2) y ensayo de la demo (cuenta en los 15-20 min).
 """
@@ -41,7 +43,9 @@ from tkinter import filedialog, messagebox, ttk
 import matplotlib
 matplotlib.use("Agg")   # Los gráficos se insertan en la ventana con FigureCanvasTkAgg
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
+from matplotlib.colors import to_rgba
 from matplotlib.figure import Figure
+from matplotlib.patches import Patch
 
 import numpy as np
 import pandas as pd
@@ -66,6 +70,12 @@ TOTAL_PASOS = 6
 NOMBRES_GLCM = {"energia": "Energía", "entropia": "Entropía", "contraste": "Contraste", "idm": "Homogeneidad (IDM)",
                 "correlacion": "Correlación", "cluster_shade": "Cluster shade", "cluster_prominence": "Cluster prominence"}
 NOMBRES_CONTRASTE = {"H": "H (tono)", "S": "S (saturación)", "V": "V (brillo)", "contraste": "Contraste", "entropia": "Entropía"}
+NOMBRES_COLOR = {"blanco": "blanco", "rojo": "rojo", "marron_claro": "marrón claro", "marron_oscuro": "marrón oscuro",
+                 "azul_grisaceo": "azul grisáceo", "negro": "negro"}
+# Con qué se pinta cada color en el mapa de M4 (los mismos del cuaderno de M4)
+PINTURA = {"blanco": "#ffffff", "rojo": "#d62728", "marron_claro": "#c08a4b", "marron_oscuro": "#6b3a1e",
+           "azul_grisaceo": "#6a86a8", "negro": "#111111"}
+PINTURA_PIEL = "#999999"   # píxeles de la lesión que se parecen más a la piel que a cualquier color
 
 TEMA = None   # None: el del sistema operativo; "claro" u "oscuro" para forzarlo
 
@@ -147,17 +157,24 @@ def hay_segmentacion():
     return True
 
 
-def parametros_d():
-    """Busca el atributo y los umbrales de D, ajustados con las imágenes de entrenamiento.
+def ajuste_entrenamiento():
+    """Busca lo que se ajusta con las imágenes de entrenamiento: D y los umbrales de M7.
 
     Entra: nada; lee resultados/caracteristicas.csv (lo genera python main.py)
-    Sale : tupla (atributo, umbrales), con atributo sin el prefijo "glcm_".
+    Sale : dict con atributo_d (sin el prefijo "glcm_"), umbrales_d, entrenamiento (las filas
+           de entrenamiento, con D) y los umbrales de Youden del TDS y del TDS extendido.
            None si la tabla todavía no existe.
     """
     if not TABLA.exists():
         return None
     tabla = procesamiento_completo.completar_d(pd.read_csv(TABLA, dtype={"nombre": str}))
-    return tabla.attrs["atributo_d"].removeprefix("glcm_"), tabla.attrs["umbrales_d"]
+    entrenamiento = tabla[tabla["conjunto"] == "entrenamiento"]
+    sospechosa = entrenamiento["sospechosa"].to_numpy(bool)
+    tds = m7.tds(entrenamiento["A"], entrenamiento["B"], entrenamiento["C"], entrenamiento["D"])
+    extendido = m7.tds_extendido(entrenamiento, m7.TERMINOS_EXTRA, entrenamiento)
+    return dict(atributo_d=tabla.attrs["atributo_d"].removeprefix("glcm_"), umbrales_d=tabla.attrs["umbrales_d"],
+                entrenamiento=entrenamiento, umbral_tds=m7.umbral_youden(tds, sospechosa),
+                umbral_extendido=m7.umbral_youden(extendido, sospechosa))
 
 
 def clasificar(tds):
@@ -563,7 +580,7 @@ class Aplicacion(tk.Tk):
         derecha.grid(row=0, column=1, sticky="nsew")
         self.lbl_clase = ttk.Label(derecha, style="ClaseSin.TLabel", wraplength=480, justify="left")
         self.lbl_clase.pack(anchor="w", pady=(0, 10))
-        self.t_resultado = self._tabla(derecha, ("Parámetro", "Calculado", "Según PH2"), (220, 120, 120), 10)
+        self.t_resultado = self._tabla(derecha, ("Parámetro", "Calculado", "Según PH2"), (220, 120, 120), 11)
         self.t_resultado.pack(fill="x")
         self.lbl_resultado = ttk.Label(derecha, style="Sub.TLabel", wraplength=480, justify="left")
         self.lbl_resultado.pack(anchor="w", pady=(10, 0))
@@ -775,7 +792,8 @@ class Aplicacion(tk.Tk):
             avisar("texto", f"[{n}/{TOTAL_PASOS}] {titulo}\n")
 
         res = dict(img=img, ref=ref, automatica=None, mascara=None, crit=None, D=None, atributo_d=None, tds=None,
-                   glcm=None, z=None, contrastes=None, ejes=None, gradientes=None, colores=None, dice=None, mapas={})
+                   tds_extendido=None, ajuste=None, glcm=None, z=None, contrastes=None, ejes=None, gradientes=None,
+                   colores=None, dice=None, mapas={})
         inicio = time.perf_counter()
 
         paso(1, "Mejoramiento (M1)")
@@ -812,11 +830,11 @@ class Aplicacion(tk.Tk):
 
         paso(4, "Textura y criterio D (M5)")
         res["glcm"] = etapa("M5", textura_criterio_d.atributos_glcm, res["v"], m)
-        parametros = etapa("M5", parametros_d)
-        if res["glcm"] is not None and parametros is not None:
-            res["atributo_d"] = parametros[0]
-            res["D"] = etapa("M5", textura_criterio_d.estimar_d, res["glcm"][parametros[0]], parametros[1])
-            avisar("texto", f"  ✔ D = {res['D']}, estimado con {parametros[0]}\n", "ok")
+        ajuste = res["ajuste"] = etapa("M5", ajuste_entrenamiento)
+        if res["glcm"] is not None and ajuste is not None:
+            res["atributo_d"] = ajuste["atributo_d"]
+            res["D"] = etapa("M5", textura_criterio_d.estimar_d, res["glcm"][ajuste["atributo_d"]], ajuste["umbrales_d"])
+            avisar("texto", f"  ✔ D = {res['D']}, estimado con {ajuste['atributo_d']}\n", "ok")
         elif res["glcm"] is not None:
             avisar("texto", "  ✔ Atributos GLCM calculados\n", "ok")
             avisar("texto", "  ⚠ D sin estimar: falta resultados/caracteristicas.csv (python main.py)\n", "aviso")
@@ -836,8 +854,14 @@ class Aplicacion(tk.Tk):
         paso(6, "TDS y clasificación (M7)")
         if res["crit"] is not None and res["D"] is not None:
             res["tds"] = etapa("M7", m7.tds, res["crit"]["A"], res["crit"]["B"], res["crit"]["C"], res["D"])
+        if res["tds"] is not None and res["contrastes"] is not None:
+            # Los términos extra se estandarizan con la media y el desvío de entrenamiento, como en M7
+            fila = pd.DataFrame([{"A": res["crit"]["A"], "B": res["crit"]["B"], "C": res["crit"]["C"], "D": res["D"],
+                                  **{f"zona_{k}": v for k, v in res["contrastes"].items()}}])
+            extendido = etapa("M7", m7.tds_extendido, fila, m7.TERMINOS_EXTRA, ajuste["entrenamiento"])
+            res["tds_extendido"] = None if extendido is None else float(extendido[0])
         if res["tds"] is not None:
-            avisar("texto", f"  ✔ TDS = {numero(res['tds'])}\n", "ok")
+            avisar("texto", f"  ✔ TDS = {numero(res['tds'])}; TDS extendido = {numero(res['tds_extendido'])}\n", "ok")
         else:
             avisar("texto", "  ⚠ El TDS necesita A, B, C y D: aparece cuando estén M4, M5 y M7, y la tabla de main.py\n", "aviso")
         avisar("listo", res, time.perf_counter() - inicio)
@@ -1019,16 +1043,29 @@ class Aplicacion(tk.Tk):
         fila("C · Colores (1 a 6)", crit["C"] if crit else None, c.c_dermatologo if c else None)
         fila("D · Estructuras (0 a 5)", res["D"], c.d_dermatologo if c else None)
         fila("TDS", numero(res["tds"]) if res["tds"] is not None else None)
+        fila("TDS extendido", numero(res["tds_extendido"]) if res["tds_extendido"] is not None else None)
+        ajuste = res["ajuste"]
+        if ajuste is not None:
+            def si_no(valor):
+                return None if valor is None else ("Sí" if valor else "No")
+            ph2 = si_no(c.sospechosa) if c else None
+            for nombre, puntaje, umbral in (("TDS", res["tds"], ajuste["umbral_tds"]),
+                                            ("TDS extendido", res["tds_extendido"], ajuste["umbral_extendido"])):
+                fila(f"¿Sospechosa? {nombre} > {numero(umbral)}", si_no(None if puntaje is None else puntaje > umbral), ph2)
         fila("Circularidad", numero(crit["circularidad"]) if crit else None)
         fila("Dice de la segmentación", numero(res["dice"], 3) if res["dice"] is not None else None)
 
         notas = []
         if crit:
-            notas.append("Colores: " + (", ".join(k.replace("_", " ") for k in crit["colores"]) or "—") + ".")
+            notas.append("Colores: " + (", ".join(NOMBRES_COLOR[k] for k in crit["colores"]) or "—") + ".")
         if res["atributo_d"]:
             notas.append(f"D estimado con {res['atributo_d']}; umbrales ajustados en entrenamiento.")
+        if res["tds"] is not None:
+            notas.append(f"El cartel usa los umbrales clínicos de la regla. Las filas «¿Sospechosa?» usan los "
+                         f"umbrales de Youden elegidos en entrenamiento (M7); el TDS extendido suma "
+                         f"{' y '.join(t.removeprefix('zona_') for t in m7.TERMINOS_EXTRA)}.")
         if res["automatica"] is not None:
-            notas.append("Contorno amarillo: segmentación. Blanco punteado: referencia de PH2.")
+            notas.append("Contorno amarillo: segmentación." + (" Blanco punteado: referencia de PH2." if res["ref"] is not None else ""))
         elif res["ref"] is not None:
             notas.append("Contorno blanco punteado: máscara de referencia, no una segmentación del programa.")
         self.lbl_resultado.configure(text="\n".join(notas))
@@ -1056,8 +1093,7 @@ class Aplicacion(tk.Tk):
         else:
             ejes[1].set_axis_off()
         if res["colores"] is not None:
-            graficos.mostrar(ejes[2], np.ma.masked_less(res["colores"], 0), cmap="tab10", vmin=0, vmax=9)
-            self._titulo_eje(ejes[2], "Mapa de colores")
+            self._dibujar_colores(ejes[2], res["colores"])
         else:
             ejes[2].set_axis_off()
         grafico.lienzo.draw_idle()
@@ -1083,7 +1119,38 @@ class Aplicacion(tk.Tk):
             ax.plot([centro_c - dc, centro_c + dc], [centro_f - df, centro_f + df], estilo, color="cyan", linewidth=1.2)
         ax.set_xlim(0, m.shape[1] - 1)
         ax.set_ylim(m.shape[0] - 1, 0)
-        self._titulo_eje(ax, f"Ejes de simetría\n{numero(f_mayor)} y {numero(f_menor)} sin superponer")
+        a = criterios_abc.contar_ejes_asimetricos(f_mayor, f_menor)
+        self._titulo_eje(ax, f"Ejes de simetría: A = {a}\n{numero(f_mayor)} y {numero(f_menor)} sin superponer "
+                             f"(asimétrico si > {numero(criterios_abc.UMBRAL_ASIMETRIA)})")
+
+    def _dibujar_colores(self, ax, mapa):
+        """Dibuja el mapa de colores de M4 recortado a la lesión, con una leyenda de los colores que aparecen.
+
+        Entra: ax     eje de matplotlib
+               mapa   array int de criterios_abc.mapa_de_colores (índice de COLORES, PARECIDO_A_PIEL o -1 afuera)
+        Sale : nada
+        """
+        pintado = np.ones((*mapa.shape, 4))
+        pintado[..., 3] = 0                                   # fuera de la lesión: transparente
+        pintado[mapa == criterios_abc.PARECIDO_A_PIEL] = to_rgba(PINTURA_PIEL)
+        presentes = []
+        for k, nombre in enumerate(carga_de_datos.COLORES):
+            if np.any(mapa == k):
+                pintado[mapa == k] = to_rgba(PINTURA[nombre])
+                presentes.append((NOMBRES_COLOR[nombre], PINTURA[nombre]))
+        if np.any(mapa == criterios_abc.PARECIDO_A_PIEL):
+            presentes.append(("parecido a la piel", PINTURA_PIEL))
+        ax.imshow(pintado)
+        ax.set_axis_off()
+        filas, columnas = np.nonzero(mapa != -1)
+        if filas.size:
+            ax.set_xlim(columnas.min() - 5, columnas.max() + 5)
+            ax.set_ylim(filas.max() + 5, filas.min() - 5)
+        ax.legend(handles=[Patch(facecolor=color, edgecolor=PALETA["borde"], label=nombre)
+                           for nombre, color in presentes],
+                  loc="upper center", bbox_to_anchor=(0.5, 0), ncol=2, fontsize=8, frameon=False, labelcolor=PALETA["texto2"])
+        self._titulo_eje(ax, f"Mapa de colores: C = {len(self.res['crit']['colores']) if self.res['crit'] else '—'}\n"
+                             f"cuenta si ocupa más del {numero(100 * criterios_abc.FRACCION_MIN_COLOR, 0)} %")
 
     def _dibujar_sectores(self, ax, gradientes):
         """Dibuja el gradiente medio de cada sector del borde, con el umbral de "abrupto" de M4.
@@ -1093,16 +1160,20 @@ class Aplicacion(tk.Tk):
         Sale : nada
         """
         p = PALETA
+        sectores = np.arange(1, len(gradientes) + 1)
         ax.set_facecolor(p["superficie"])
-        ax.bar(np.arange(1, len(gradientes) + 1), gradientes, color=p["series"][0])
-        if criterios_abc.UMBRAL_BORDE is not None:
-            ax.axhline(criterios_abc.UMBRAL_BORDE, color=p["series"][1])
-        ax.set_xlabel("sector del borde", color=p["texto2"])
+        ax.bar(sectores, gradientes, color=p["series"][0])
+        ax.axhline(criterios_abc.UMBRAL_BORDE, color=p["series"][1])
+        for s in sectores[~np.isfinite(gradientes)]:   # sectores pegados al marco o a la viñeta: no cuentan
+            ax.text(s, 0, "toca el\nmarco", ha="center", va="bottom", fontsize=7, color=p["tenue"])
+        ax.set_xticks(sectores)
+        ax.set_xlabel("sector del borde (desde el eje mayor)", color=p["texto2"])
         ax.set_ylabel("gradiente medio", color=p["texto2"])
         ax.tick_params(colors=p["texto2"])
         ax.spines[["top", "right"]].set_visible(False)
         ax.spines[["left", "bottom"]].set_color(p["borde"])
-        self._titulo_eje(ax, "Borde por sector")
+        b = criterios_abc.contar_sectores_abruptos(gradientes)
+        self._titulo_eje(ax, f"Borde por sector: B = {b}\nabrupto si > {numero(criterios_abc.UMBRAL_BORDE, 4)}")
 
     def _dibujar_zonas(self):
         """Dibuja las cuatro zonas y, al lado, el mapa de textura recortado a la lesión.
