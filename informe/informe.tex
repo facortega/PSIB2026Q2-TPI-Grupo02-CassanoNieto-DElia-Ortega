@@ -13,15 +13,21 @@
 \usepackage{subcaption}
 \usepackage{booktabs}
 \usepackage{siunitx}
+\usepackage{tikz}
+\usetikzlibrary{positioning,babel,fit,calc,arrows.meta}
 \sisetup{output-decimal-marker={,}}
 \graphicspath{{figuras/}}
+\setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
+\setlength{\intextsep}{8pt plus 2pt minus 2pt}
+\setlength{\abovecaptionskip}{4pt}
 
-% --- Bibliografía: APA, ordenada por aparición --------------------------------
+% --- Bibliografía: numerada, en orden de aparición --------------------------------
 \usepackage{csquotes}
-\usepackage[style=apa,sorting=none,backend=biber]{biblatex}
+\usepackage[style=numeric,sorting=none,backend=biber]{biblatex}
 \addbibresource{referencias.bib}
 
 \usepackage{xcolor}
+\usepackage{xurl}
 \usepackage[hidelinks,pdftitle={PSIB2026Q2-TPI-Grupo02-CassanoNieto DElia Ortega}]{hyperref}
 
 % --- Marcas de trabajo pendiente ----------------------------------------------
@@ -70,6 +76,7 @@
 \end{titlepage}
 
 \input{secciones/00_resumen}
+\setcounter{tocdepth}{2}
 \tableofcontents
 \clearpage
 
