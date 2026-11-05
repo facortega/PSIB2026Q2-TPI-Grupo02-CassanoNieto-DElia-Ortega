@@ -4,7 +4,7 @@
 
 \subsection{Pre-procesamiento}
 
-\paragraph{Canal de trabajo.} El canal azul es el que mejor separa la lesión de la piel en entrenamiento (AUC medio 0,976, seguido por $G$ con 0,965), lo que es coherente con que la melanina absorbe más la luz azul que la roja. El canal $V$, propuesto en el anteproyecto, queda entre los peores (0,902), porque $V=\max(R,G,B)$ y en la piel y la lesión domina el rojo. Por eso la segmentación se hace sobre $B$. \pendiente{Indicar qué canal usa M4 para el borde.}
+\paragraph{Canal de trabajo.} El canal azul es el que mejor separa la lesión de la piel en entrenamiento (AUC medio 0,976, seguido por $G$ con 0,965), lo que es coherente con que la melanina absorbe más la luz azul que la roja. El canal $V$, propuesto en el anteproyecto, queda entre los peores (0,902), porque $V=\max(R,G,B)$ y en la piel y la lesión domina el rojo. Por eso la segmentación se hace sobre $B$. El borde, en cambio, se mide sobre $V$, como estaba propuesto, porque ahí interesa el cambio de brillo en el contorno y no separar lesión de piel.
 
 \paragraph{Viñeteo y pelos.} Con el perfil radial, sólo 4 de las 200 imágenes pierden más del 2\,\% de la lesión por quedar fuera de la zona válida (máximo 5,9\,\%). En cuanto a los pelos, el cierre reconstruye sólo sus píxeles, mientras que la mediana suaviza toda la imagen, incluidas la red y el borde (figura~\ref{fig:pelos} del anexo). El filtro de forma es lo que evita borrar la red. En IMD200, que no tiene pelos, el umbral solo marca como pelo el 28\,\% de la lesión, y el filtro completo, el 1\,\% (figura~\ref{fig:filtro-forma} del anexo).
 
@@ -35,7 +35,7 @@
 
 \subsection{Segmentación}
 \label{sec:res-segmentacion}
-Los cinco métodos quedaron muy cerca en entrenamiento (tabla~\ref{tab:metodos}). Elegimos el crecimiento de regiones aunque \emph{watershed} tiene un Dice medio 0,003 mayor, porque esa diferencia es despreciable, falla en una imagen menos y es casi diez veces más rápido. k-means quedó último, con 10 imágenes mal segmentadas.
+Los cinco métodos quedaron muy cerca en entrenamiento (tabla~\ref{tab:metodos}). Elegimos el crecimiento de regiones aunque \emph{watershed} tiene un Dice medio 0,003 mayor, porque esa diferencia es despreciable, falla en una imagen menos y es casi diez veces más rápido. Otsu y Chan-Vese tienen la mediana más alta, pero fallan en 6 y 7 imágenes, y k-means quedó último, con 10 fallas. El crecimiento de regiones depende mucho de la tolerancia (de 0,69 a 0,91 de Dice medio), y en las lesiones chicas supera a Otsu por 0,04, porque ahí el histograma casi no tiene un pico de lesión y el umbral de Otsu se corre hacia la piel.
 
 \begin{table}[!htb]
   \centering\small
@@ -54,11 +54,22 @@ Los cinco métodos quedaron muy cerca en entrenamiento (tabla~\ref{tab:metodos})
   \label{tab:metodos}
 \end{table}
 
-En las 60 imágenes de prueba, el crecimiento de regiones da un Dice medio de 0,916 y una mediana de 0,946, muy parecidos a los de entrenamiento. Encuentra el 82,8\,\% de los píxeles de lesión y marca como lesión sólo el 1,1\,\% de los de piel, así que su error típico es quedarse corto. Falla en 2 de las 60 imágenes de prueba y en 2 de las 140 de entrenamiento, y las 4 son melanomas con azul grisáceo en los que dejó lesión afuera (figura~\ref{fig:casos} del anexo). El azul grisáceo refleja bastante luz azul y por eso en el canal $B$ se ve casi como la piel. Aun así, 34 de las 38 imágenes con ese color salen bien, y ningún otro método resolvió estos casos sin empeorar el resto.
+En las 60 imágenes de prueba, el crecimiento de regiones da un Dice medio de 0,916 y una mediana de 0,946, muy parecidos a los de entrenamiento. Encuentra el 82,8\,\% de los píxeles de lesión y marca como lesión sólo el 1,1\,\% de los de piel, así que su error típico es quedarse corto, sobre todo en los melanomas. Falla en 2 de las 60 imágenes de prueba y en 2 de las 140 de entrenamiento, y las 4 son melanomas con azul grisáceo en los que dejó lesión afuera (figura~\ref{fig:casos} del anexo), porque ese color refleja bastante luz azul y en el canal $B$ se ve casi como la piel. Aun así, 34 de las 38 imágenes con azul grisáceo salen bien, y ningún método, ni siquiera k-means, que mira el color completo, resolvió esos casos sin empeorar el resto, así que mantuvimos el canal azul.
 
 \subsection{Criterios y comparación con el dermatólogo}
+En prueba los criterios dan valores parecidos a los de entrenamiento, así que sus umbrales no quedaron ajustados sólo a esas imágenes.
+
+\paragraph{Asimetría.} El $\kappa$ con el dermatólogo es 0,44 en entrenamiento y 0,38 en prueba, con coincidencia exacta en el 67\,\% de las imágenes de prueba. El acuerdo está en los extremos y el $A=1$ es el más difícil. Muchos desacuerdos aparecen porque el dermatólogo también mira si el pigmento está repartido de forma pareja, y el programa sólo mira la forma del contorno (figura~\ref{fig:asimetria} del anexo).
+
+\paragraph{Borde.} Esperábamos que el gradiente normalizado separara mejor, y separó al revés (AUC entre 0,24 y 0,38 con cualquier umbral), porque en PH2 los nevos comunes suelen ser manchas parejas de borde nítido y los atípicos y melanomas tienen bordes que se desvanecen. Elegimos el gradiente crudo con umbral 0,0513, el único que suma en el sentido del TDS, aunque separa poco (AUC 0,60 en prueba).
+
+\paragraph{Color.} El $\kappa$ de C es 0,17 en entrenamiento y 0,24 en prueba, aunque en el 80\,\% de las imágenes la diferencia es de un color como mucho. El marrón claro aparece casi siempre, incluso en 42 de las 44 lesiones de entrenamiento donde no fue anotado, porque es el color del borde, donde el pigmento se aclara. El blanco casi nunca se encuentra, porque el programa lo asigna a la piel, y el rojo sólo en la imagen de la que salió su referencia, mientras que el marrón oscuro, el azul grisáceo y el negro andan mejor ($\kappa$ entre 0,49 y 0,57 en prueba) (figura~\ref{fig:colores} del anexo). Un mínimo propio para cada color mejora cada color por separado pero no el $\kappa$ de C, así que mantuvimos uno solo.
+
+\paragraph{Circularidad.} Separa bien los grupos (AUC 0,72 en prueba), porque los melanomas son mucho menos circulares (mediana 0,34, contra 0,71 en los nevos comunes).
+
+\paragraph{¿Error de segmentación o del criterio?} Con la máscara de PH2 los criterios no mejoran. El $\kappa$ de A baja de 0,44 a 0,29 y el AUC de la circularidad de 0,75 a 0,57, y B y C quedan parecidos, así que los desacuerdos vienen de los criterios y no de la segmentación. Una explicación posible es que nuestra máscara sigue el pigmento más oscuro y su forma refleja también cómo está repartido.
+
 El criterio D estimado resultó débil como medida de D. En validación cruzada dentro de entrenamiento acierta el valor exacto en el 30\,\% de las imágenes, menos que decir siempre la mediana (37\,\%), y su acuerdo con el dermatólogo es casi nulo ($\kappa=0{,}06$). En prueba acierta en el 40\,\%, también menos que la mediana de entrenamiento (50\,\%), con $\kappa=0{,}17$. Tiene sentido, porque un solo número global de textura no puede contar cinco estructuras distintas.
-\pendiente{Con M4, $\kappa$ de A y de C, referencias de color y ejemplos del mapa de colores.}
 
 \subsection{Zonas y mapas de características}
 Los mapas sugieren que la información no está repartida de manera pareja (figura~\ref{fig:mapas}), aunque son dos ejemplos y no una prueba. Medido en las 140 imágenes de entrenamiento, en los nevos comunes la mediana de la entropía baja de adentro hacia afuera (4,40 en el centro, 4,31 en la periferia y 4,16 en la interfase interna), y en las sospechosas esa caída no aparece (4,31, 4,40 y 4,33). Un número global promedia esos comportamientos opuestos.
@@ -93,4 +104,29 @@ La tabla~\ref{tab:auc-prueba} muestra qué pasó al llevar estas medidas a prueb
 La última fila de la tabla es el TDS extendido sin A, B ni C, que no es el TDS y sirve sólo para ver si las zonas agregan algo a D. Sube el AUC en 0,11 respecto de D estimado, pero el intervalo de esa diferencia (de $-0{,}01$ a 0,23) incluye al cero, así que la mejora no es significativa. Con el umbral elegido en entrenamiento alcanza en prueba una sensibilidad de 0,81 y una especificidad de 0,54, frente a 0,56 y 0,63 de D estimado solo.
 
 \subsection{Clasificación}
-\pendiente{Falta M4. Tabla de TDS con umbral clínico, TDS con umbral de Youden y TDS extendido (sensibilidad, especificidad y AUC con su intervalo), curvas ROC y distribución del TDS por grupo. El código ya está en \texttt{m7.generar}, que guarda \texttt{m7\_clasificacion}, \texttt{m7\_acuerdo}, \texttt{m7\_roc} y \texttt{m7\_tds\_grupos}.}
+El TDS automático separa las lesiones sospechosas de los nevos comunes en prueba, con un AUC de 0,78 cuyo intervalo no incluye al 0,5 (tabla~\ref{tab:clasificacion} y figura~\ref{fig:clasificacion}). Por separado, los criterios que más aportan son A y C (AUC de 0,73 y 0,69), mientras que B y D quedan en 0,60.
+
+\begin{table}[!htb]
+  \centering\small
+  \begin{tabular}{@{}lccccc@{}}
+    \toprule
+    Clasificador & Umbral & Sensibilidad & Especificidad & AUC & IC 95\,\% del AUC \\
+    \midrule
+    TDS, umbral clínico & 4,75 & 0,25 & 0,96 & 0,78 & 0,66 a 0,89 \\
+    TDS, umbral de Youden & 2,25 & 0,78 & 0,58 & 0,78 & 0,66 a 0,89 \\
+    TDS extendido, umbral de Youden & 1,62 & 0,89 & 0,46 & 0,79 & 0,66 a 0,90 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Clasificación de las 60 imágenes de prueba. Los umbrales de Youden se eligieron en entrenamiento.}
+  \label{tab:clasificacion}
+\end{table}
+
+Con el umbral clínico la sensibilidad es de sólo 0,25 por los nevos atípicos. La regla se pensó para reconocer melanomas, y con ese umbral el programa detecta 8 de los 12 melanomas de prueba pero sólo 1 de los 24 nevos atípicos, cuyo TDS tiene una mediana de 3,05, más cerca de los nevos comunes (2,0) que de los melanomas (5,85). El TDS extendido sube el AUC en apenas 0,006, con un intervalo de la diferencia de $-0{,}07$ a 0,09, así que agregar las zonas no lo mejora, posiblemente porque lo que agregaban a D ya lo cubren A, B y C.
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.42\textwidth]{m7_roc}\hspace{0.04\textwidth}%
+  \includegraphics[width=0.42\textwidth]{m7_tds_grupos}
+  \caption{Curvas ROC del TDS y del TDS extendido (izquierda) y TDS de las imágenes de prueba según el grupo, con el umbral clínico punteado (derecha).}
+  \label{fig:clasificacion}
+\end{figure}

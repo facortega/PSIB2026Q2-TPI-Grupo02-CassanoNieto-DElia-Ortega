@@ -60,7 +60,9 @@ def main():
 
     print("\n3. Resultados finales\n")
     try:
+        from modulos.herramientas import graficos
         from modulos.m7_clasificacion_resultados import clasificacion_resultados
+        graficos.aplicar_estilo()   # el mismo estilo de figuras que usan los cuadernos
         clasificacion_resultados.generar(tabla)
         print("  Figuras y tablas guardadas en informe/figuras/ e informe/tablas/\n")
     except NotImplementedError as e:

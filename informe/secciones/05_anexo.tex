@@ -11,6 +11,38 @@
 
 \begin{figure}[!htb]
   \centering
+  \includegraphics[width=0.85\textwidth]{m4_asimetria_ejemplos}
+  \caption{Ejes de simetría y reflejo de la máscara sobre el eje mayor en tres lesiones de entrenamiento. En IMD312 la forma es casi simétrica, pero el pigmento se concentra de un lado, y por eso el dermatólogo puso $A=2$.}
+  \label{fig:asimetria}
+\end{figure}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.7\textwidth]{m4_mapa_colores}
+  \caption{Mapa de colores de la lesión con más colores anotados de cada diagnóstico. En los dos nevos casi todo queda como marrón claro, y en el melanoma el blanco y el negro no llegan al 5\,\% de la lesión.}
+  \label{fig:colores}
+\end{figure}
+
+\begin{table}[!htb]
+  \centering\small
+  \begin{tabular}{@{}lcccc@{}}
+    \toprule
+    Color & Zonas & $H$ & $S$ & $V$ \\
+    \midrule
+    Blanco & 2 & 0,630 & 0,152 & 0,541 \\
+    Rojo & 1 & 0,976 & 0,212 & 0,492 \\
+    Marrón claro & 12 & 0,083 & 0,249 & 0,452 \\
+    Marrón oscuro & 13 & 0,060 & 0,242 & 0,300 \\
+    Azul grisáceo & 6 & 0,965 & 0,069 & 0,285 \\
+    Negro & 3 & 0,038 & 0,065 & 0,254 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Referencias de color en HSV, con la imagen dividida por el color de la piel, que queda en gris medio ($V=0{,}5$). Cada una es la mediana de las zonas de entrenamiento de ese color.}
+  \label{tab:referencias}
+\end{table}
+
+\begin{figure}[!htb]
+  \centering
   \includegraphics[width=0.85\textwidth]{m1_pelos}
   \caption{Remoción de pelos en una imagen con muchos pelos (IMD003) y en una sin pelos con red de pigmento (IMD200). Se muestran la original, los pelos detectados, el cierre con \emph{inpainting} y el filtro de mediana.}
   \label{fig:pelos}
@@ -77,6 +109,13 @@
   \includegraphics[width=0.85\textwidth]{m2_detalle}
   \caption{Detalle de la red de pigmento de IMD200 en la imagen original y comprimida a calidades 75, 25 y 10 (entre paréntesis, la tasa de compresión).}
   \label{fig:compresion}
+\end{figure}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=\textwidth]{interfaz}
+  \caption{Interfaz gráfica con un melanoma de prueba (IMD409). A la izquierda, los pasos del algoritmo, y a la derecha, la segmentación y la tabla con los criterios calculados junto a los del dermatólogo.}
+  \label{fig:interfaz}
 \end{figure}
 
 \begin{table}[!htb]

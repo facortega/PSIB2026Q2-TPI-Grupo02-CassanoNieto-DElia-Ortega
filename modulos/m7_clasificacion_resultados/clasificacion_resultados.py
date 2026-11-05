@@ -202,7 +202,7 @@ def generar(tabla):
                             {"medida": "Dice medio", "valor": prueba["dice"].mean()}])
     graficos.guardar_tabla(acuerdo, "m7_acuerdo", decimales=2)
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8 / 2.54, 6.5 / 2.54))   # media columna del informe
     for nombre, puntaje in (("TDS", tds_p), ("TDS extendido", ext_p)):
         umbrales = np.r_[np.inf, np.sort(np.unique(puntaje))[::-1], -np.inf]
         ax.plot([(puntaje[~real_p] > u).mean() for u in umbrales], [(puntaje[real_p] > u).mean() for u in umbrales],
@@ -211,7 +211,7 @@ def generar(tabla):
     ax.set_xlabel("1 - especificidad"); ax.set_ylabel("sensibilidad"); ax.legend()
     graficos.guardar_figura(fig, "m7_roc")
 
-    fig, ax = plt.subplots()
+    fig, ax = plt.subplots(figsize=(8 / 2.54, 6.5 / 2.54))   # media columna del informe
     cajas = ax.boxplot([tds_p[~real_p], tds_p[real_p]], tick_labels=["común", "sospechosa"], patch_artist=True, flierprops={"markersize": 2})
     cajas["boxes"][0].set_facecolor(graficos.COLOR_GRUPO["comun"]); cajas["boxes"][1].set_facecolor(graficos.COLOR_GRUPO["sospechosa"])
     ax.axhline(UMBRAL_SOSPECHOSA, color="gray", linewidth=0.8, linestyle="--")
