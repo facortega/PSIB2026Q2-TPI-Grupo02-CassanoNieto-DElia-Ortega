@@ -624,8 +624,8 @@ class Aplicacion(tk.Tk):
         ttk.Label(derecha, text="Contrastes entre zonas", style="Dato.TLabel").pack(anchor="w", pady=(0, 6))
         self.t_contrastes = self._tabla(derecha, ("Atributo", "Periferia − centro", "Piel − lesión"), (160, 140, 120), len(NOMBRES_CONTRASTE))
         self.t_contrastes.pack(fill="x")
-        ttk.Label(derecha, text="En entrenamiento, los que más separan a las sospechosas son la saturación de periferia − "
-                                "centro y la de piel − lesión (valores provisorios, medidos con la máscara de referencia).",
+        ttk.Label(derecha, text="En entrenamiento, con la máscara de M3, el que más separa a las sospechosas es la saturación "
+                                "de periferia − centro.",
                   style="Sub.TLabel", wraplength=430, justify="left").pack(anchor="w", pady=(10, 0))
 
     # ---------------- Elegir imagen ----------------
