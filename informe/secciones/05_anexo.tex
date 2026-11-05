@@ -101,3 +101,27 @@
   \caption{Archivos de Python del repositorio. Cada módulo M$n$ está en \texttt{modulos/m$n$\_\ldots/}.}
   \label{tab:archivos}
 \end{table}
+
+\begin{table}[!htb]
+  \centering\small
+  \begin{tabular}{@{}lccccc@{}}
+    \toprule
+    Método & Dice medio & Mediana & Peor & Dice $<$ 0,7 & Segundos por imagen \\
+    \midrule
+    \emph{Watershed} & 0,911 & 0,936 & 0,504 & 3 & 0,151 \\
+    \textbf{Crecimiento de regiones} & \textbf{0,908} & \textbf{0,931} & \textbf{0,501} & \textbf{2} & \textbf{0,016} \\
+    Otsu & 0,906 & 0,940 & 0,262 & 6 & 0,013 \\
+    Chan-Vese & 0,900 & 0,938 & 0,262 & 7 & 0,351 \\
+    k-means & 0,880 & 0,925 & 0,259 & 10 & 0,207 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Métodos de segmentación con su mejor combinación de parámetros, sobre las 140 imágenes de entrenamiento.}
+  \label{tab:metodos}
+\end{table}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.78\textwidth]{m6_mapas}
+  \caption{Mapas de entropía, correlación y contraste en un nevo común y un melanoma de entrenamiento. El hueco del mapa del melanoma es una zona central clara que la máscara automática dejó afuera.}
+  \label{fig:mapas}
+\end{figure}
