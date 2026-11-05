@@ -1,3 +1,14 @@
 \section{Conclusiones}
 \label{sec:conclusiones}
-\pendiente{Según la consigna: (1) si se cumplió cada objetivo y qué pasó con cada hipótesis; (2) comparación con los algoritmos del Estado del arte (sección~\ref{sec:estado-arte}), sobre todo los evaluados en PH2; (3) limitaciones (tamaño de la base, un único equipo, D adaptado, umbrales elegidos con pocas imágenes); (4) mejoras posibles, incluido el objetivo de máxima de compresión si no se completó.}
+
+La segmentación cumplió su objetivo, con un Dice medio de 0,916 en prueba y fallas en sólo 4 de las 200 imágenes. La compresión quedó caracterizada, aunque no se llegó al objetivo de máxima de repetir el algoritmo sobre imágenes comprimidas.
+
+La hipótesis 1 no se confirmó. Quitar los pelos con un cierre no mejoró la segmentación y, en entrenamiento, resultó peor que el filtro de mediana. Una posible razón, que no comprobamos, es que el suavizado gaussiano previo a la segmentación ya atenúa buena parte de los pelos.
+
+El criterio D estimado con un solo atributo de textura no reproduce al dermatólogo y, en prueba, tampoco separa los grupos con seguridad. El AUC cayó de 0,73 en entrenamiento a 0,60 en prueba, y eso muestra por qué convenía reservar ese conjunto. Mirar la lesión por zonas fue más prometedor, porque la saturación de periferia menos centro se mantuvo en un AUC de 0,71, pero con 60 imágenes el intervalo es ancho y no alcanza para distinguirla del brillo de la lesión ni para afirmar que mejore a D.
+
+\pendiente{Hipótesis 2 y objetivos 4 y 7, que dependen de M4. Comparar la sensibilidad y la especificidad del TDS con los trabajos del Estado del arte, aclarando que separan otros grupos.}
+
+Las limitaciones principales son la base, chica y de un solo equipo y un solo hospital, y el conjunto de prueba, que tiene sólo 60 imágenes y 9 con pelos. Además, D es una adaptación que cuenta estructuras con un número global, y la segmentación sobre el canal azul pierde justamente las zonas azul grisáceas que se asocian al melanoma, lo que puede afectar a los criterios que dependen de la máscara.
+
+Como mejoras, proponemos segmentar con información de color sin sumar fallas en el resto de las imágenes, medir cada estructura de D con su propio detector en lugar de un único número, repetir el algoritmo sobre imágenes comprimidas y validarlo con otra base de imágenes.

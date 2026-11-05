@@ -5,138 +5,167 @@
 \label{sec:base}
 % Módulo: M0
 
-Se usa la base PH2 \parencite{mendonca2013}, del Hospital Pedro Hispano (Portugal). Contiene 200 imágenes dermatoscópicas RGB de 8 bits por canal, adquiridas con el mismo equipo y en condiciones uniformes: 80 nevos comunes, 80 nevos atípicos y 40 melanomas. El tamaño de las imágenes no es fijo: hay 24 tamaños distintos, los más frecuentes de $767\times576$ y $768\times576$ píxeles, por lo que ninguna etapa del algoritmo supone un tamaño determinado. La lesión ocupa entre el 3\,\% y el 98\,\% de la imagen (mediana 23\,\%), y en 50 imágenes toca el borde, es decir, no se ve completa. Cada imagen viene con la máscara de la lesión dibujada a mano y con la evaluación de un dermatólogo: diagnóstico clínico, asimetría (0, 1 o 2 ejes), colores presentes (de los seis de la regla) y presencia de red de pigmento (típica o atípica), puntos y glóbulos, estrías, áreas de regresión y velo azul-blanquecino. En 27 imágenes se incluyen además máscaras de las regiones de cada color. Eso permite validar el algoritmo paso a paso: la segmentación contra la máscara, A y C contra el dermatólogo, la textura contra las estructuras anotadas y la clasificación contra el diagnóstico.
+Se usa la base PH2 \parencite{mendonca2013}, del Hospital Pedro Hispano (Portugal), con 200 imágenes dermatoscópicas RGB de 8 bits por canal adquiridas con el mismo equipo, que incluyen 80 nevos comunes, 80 nevos atípicos y 40 melanomas (figura~\ref{fig:ejemplos} del anexo). Hay 24 tamaños de imagen distintos, así que ninguna etapa supone un tamaño fijo. La lesión ocupa entre el 3\,\% y el 98\,\% de la imagen (mediana 23\,\%) y en 50 imágenes toca el borde. Cada imagen trae la máscara de la lesión dibujada a mano y la evaluación de un dermatólogo (diagnóstico, asimetría, colores y estructuras), lo que permite validar cada etapa por separado.
 
-Se trabaja con las 200 imágenes. Se considera \emph{sospechosa} toda lesión con diagnóstico de nevo atípico o melanoma (120 imágenes) y \emph{no sospechosa} a los nevos comunes (80), lo que responde a la pregunta del anteproyecto: distinguir las lesiones que ameritan control de los lunares comunes. El recorte de alcance sugerido en la devolución se aplica sobre los objetivos: la evaluación completa del algoritmo sobre imágenes comprimidas queda como objetivo de máxima.
+Se considera \emph{sospechosa} toda lesión con diagnóstico de nevo atípico o melanoma (120 imágenes) y \emph{no sospechosa} a los nevos comunes (80), porque la pregunta es distinguir las lesiones que ameritan control de los lunares comunes.
 
-Para el criterio D adaptado se cuenta la cantidad de estructuras presentes según el dermatólogo (0 a 5). La red de pigmento se cuenta sólo cuando es atípica. En la regla original se cuenta su presencia \parencite{nachbar1994}, pero en PH2 todas las lesiones tienen red (típica o atípica), así que su mera presencia no distingue entre lesiones; se usa en cambio la red atípica, que es la que se asocia al melanoma \pendiente{citar}. Con esta definición, la red atípica no aparece en ningún nevo común y sí en 77 de los 80 atípicos y 39 de los 40 melanomas, y el D medio es 0,65 en los nevos comunes, 1,79 en los atípicos y 3,12 en los melanomas.
+Para el criterio D adaptado se cuenta la cantidad de estructuras presentes según el dermatólogo (0 a 5). La red de pigmento se cuenta sólo cuando es atípica. En la regla original se cuenta su presencia \parencite{nachbar1994}, pero en PH2 todas las lesiones tienen red, así que se usa la red atípica, que es la que se asocia al melanoma \parencite{argenziano2003}. Con esta definición, el D medio es 0,65 en los nevos comunes, 1,79 en los atípicos y 3,12 en los melanomas.
 
-Las imágenes se dividieron en un conjunto de entrenamiento (70\,\%, 140 imágenes) y uno de prueba (30\,\%, 60 imágenes), estratificados por diagnóstico y con semilla fija para que la partición sea reproducible (tabla~\ref{tab:particion}). Todos los umbrales y parámetros se eligen únicamente con el conjunto de entrenamiento; el de prueba se usa sólo para las métricas finales.
-
-\begin{table}[h]
-  \centering\small
-  \begin{tabular}{@{}lccc|c@{}}
-    \toprule
-    Conjunto & Nevo común & Nevo atípico & Melanoma & Total \\
-    \midrule
-    Entrenamiento & 56 & 56 & 28 & 140 \\
-    Prueba        & 24 & 24 & 12 & 60 \\
-    \midrule
-    Total         & 80 & 80 & 40 & 200 \\
-    \bottomrule
-  \end{tabular}
-  \caption{Cantidad de imágenes por diagnóstico en cada conjunto.}
-  \label{tab:particion}
-\end{table}
-
-\pendiente{Figura con un ejemplo de cada diagnóstico y el contorno de su máscara (\texttt{m0\_ejemplos}, del cuaderno de M0).}
+Las imágenes se dividieron en entrenamiento (140, con 56 nevos comunes, 56 atípicos y 28 melanomas) y prueba (60, con 24, 24 y 12), de forma estratificada y con semilla fija. Todos los umbrales y parámetros se eligen únicamente con entrenamiento, y prueba se usa sólo para las métricas finales.
 
 \subsection{Esquema del algoritmo}
 \label{sec:esquema}
-\pendiente{Diagrama de bloques: imagen $\rightarrow$ mejoramiento (viñeta, pelos) $\rightarrow$ segmentación $\rightarrow$ criterios A, B, C $\mid$ textura y D $\mid$ zonas y mapas $\rightarrow$ TDS (y TDS extendido) $\rightarrow$ clasificación. Indicar el módulo del repositorio de cada bloque.}
+La figura~\ref{fig:esquema} muestra el recorrido de una imagen por el algoritmo. La compresión (M2) no forma parte de ese recorrido, y se estudia aparte para saber qué se pierde al guardar las imágenes en JPEG.
+
+\begin{figure}[!htb]
+  \centering
+  \definecolor{cdatos}{HTML}{5E6974}
+  \definecolor{cpre}{HTML}{1F5F8B}
+  \definecolor{cseg}{HTML}{2A7F6F}
+  \definecolor{ccar}{HTML}{A8481A}
+  \definecolor{ccla}{HTML}{15212B}
+  \begin{tikzpicture}[>={Stealth[length=1.8mm]}, font=\scriptsize,
+      b/.style={draw=#1, fill=#1!10, line width=0.6pt, align=center, minimum height=0.62cm, inner sep=2pt},
+      f/.style={->, line width=0.7pt, draw=black!75},
+      l/.style={line width=0.7pt, draw=black!75},
+      s/.style={font=\scriptsize\itshape, text=black!75, inner sep=1.5pt},
+      m/.style={draw=#1, dashed, line width=0.5pt, rounded corners=2pt, inner sep=5pt},
+      t/.style={font=\scriptsize\bfseries, text=#1, inner sep=1pt, anchor=south west}]
+    % Fila superior: de la imagen a la máscara
+    \node[b=cdatos, minimum width=1.25cm] (ph2) at (0.65,0) {Imagen\\PH2 (M0)};
+    \node[b=cpre, minimum width=1.7cm] (vin) at (2.85,0) {Detección\\de viñeta};
+    \node[b=cpre, minimum width=1.7cm] (pel) at (5.05,0) {Remoción\\de pelos};
+    \node[b=cseg, minimum width=1.75cm] (can) at (7.75,0) {Canal azul\\suavizado};
+    \node[b=cseg, minimum width=1.95cm] (cre) at (10.1,0) {Crecimiento\\de regiones};
+    \node[b=cseg, minimum width=1.8cm] (pos) at (12.5,0) {Morfología y\\región central};
+    % Compresión, aparte
+    \node[b=cdatos, minimum width=1.7cm] (jpg) at (2.85,1.75) {Compresión\\JPEG};
+    \node[b=cdatos, minimum width=1.7cm] (met) at (5.05,1.75) {PSNR, SSIM\\y $\Delta E$};
+    % Criterios A, B y C
+    \node[b=ccar, minimum width=2.7cm] (a) at (2.85,-2.05) {Asimetría por ejes};
+    \node[b=ccar, minimum width=2.7cm] (bo) at (2.85,-2.8) {Borde por sectores};
+    \node[b=ccar, minimum width=2.7cm] (c) at (2.85,-3.55) {Colores presentes};
+    % Textura y D
+    \node[b=ccar, minimum width=2.7cm] (gl) at (2.85,-5.0) {GLCM de $V$};
+    \node[b=ccar, minimum width=2.3cm] (est) at (6.25,-5.0) {Estimación de D\\con umbrales};
+    % Zonas y mapas
+    \node[b=ccar, minimum width=2.7cm] (zo) at (2.85,-6.75) {Zonas de la lesión};
+    \node[b=ccar, minimum width=2.3cm] (co) at (6.25,-6.75) {Contrastes\\entre zonas};
+    \node[b=ccar, minimum width=2.3cm] (ma) at (6.25,-7.6) {Mapas de textura};
+    % TDS y clasificación
+    \node[b=ccla, minimum width=1.7cm] (tds) at (10.3,-2.8) {TDS};
+    \node[b=ccla, minimum width=1.7cm] (ext) at (10.3,-5.6) {TDS\\extendido};
+    \node[b=ccla, minimum width=1.9cm] (umb) at (12.75,-4.2) {Umbral clínico\\o de Youden};
+    \node[align=center, font=\scriptsize\bfseries] (sal) at (15.0,-4.2) {Sospechosa\\o común};
+    % Recuadros de los módulos
+    \node[m=cdatos, fit=(jpg)(met)] (fm2) {}; \node[t=cdatos] at (fm2.north west) {M2 · Compresión};
+    \node[m=cpre, fit=(vin)(pel)] (fm1) {}; \node[t=cpre] at (fm1.north west) {M1 · Mejoramiento};
+    \node[m=cseg, fit=(can)(cre)(pos)] (fm3) {}; \node[t=cseg] at (fm3.north west) {M3 · Segmentación};
+    \node[m=ccar, fit=(a)(c)] (fm4) {}; \node[t=ccar] at (fm4.north west) {M4 · Criterios A, B y C};
+    \node[m=ccar, fit=(gl)(est)] (fm5) {}; \node[t=ccar] at (fm5.north west) {M5 · Textura y criterio D};
+    \node[m=ccar, fit=(zo)(co)(ma)] (fm6) {}; \node[t=ccar] at (fm6.north west) {M6 · Zonas y mapas};
+    \node[m=ccla, fit=(tds)(ext)(umb)] (fm7) {}; \node[t=ccla] at (fm7.north west) {M7 · TDS y clasificación};
+    % Flechas de la fila superior
+    \draw[f] (ph2) -- (vin); \draw[f] (vin) -- (pel); \draw[f] (pel) -- (can); \draw[f] (can) -- (cre); \draw[f] (cre) -- (pos);
+    \draw[f, dashed] (ph2.north) |- (jpg.west); \draw[f, dashed] (jpg) -- (met);
+    % Reparto de la imagen mejorada y la máscara
+    \coordinate (bus) at (0.65,-0.95);
+    \draw[l] (pos.south) |- (bus);
+    \node[s, fill=white] at (7.2,-0.95) {imagen mejorada y máscara de la lesión};
+    \draw[l] (bus) -- (0.65,-6.75);
+    \foreach \n in {a,bo,c,gl,zo} {\draw[f] (0.65,0 |- \n.west) -- (\n.west); \fill[black!75] (0.65,0 |- \n.west) circle (1pt);}
+    % Dentro de M5 y M6
+    \draw[f] (gl) -- (est);
+    \draw[f] (zo) -- (co);
+    \fill[black!75] ($(zo.east)+(0.45,0)$) circle (1pt);
+    \draw[f] ($(zo.east)+(0.45,0)$) |- (ma.west);
+    \fill[black!75] ($(gl.east)+(0.45,0)$) circle (1pt);
+    \draw[f] ($(gl.east)+(0.45,0)$) -- ++(0,-0.95) -| (co.north);
+    \node[s, anchor=south west] at (5.0,-5.95) {atributos GLCM};
+    % A, B y C se juntan y van al TDS
+    \coordinate (abc) at (5.1,-2.68);
+    \draw[l] (a.east) -| (abc); \draw[l] (c.east) -| (abc); \draw[l] (bo.east) -- (bo.east -| abc);
+    \draw[f] (abc) -- node[s, above, pos=0.4] {A, B y C} (abc -| tds.west);
+    \draw[f] (est.east) -- ++(0.75,0) |- ($(tds.west)+(0,-0.14)$);
+    \node[s, anchor=west] at (8.18,-3.9) {D};
+    \draw[f] (co.east) -- ++(1.55,0) |- (ext.west);
+    \node[s, anchor=south] at (8.25,-6.75) {2 términos};
+    % M7
+    \draw[f] (tds.south) -- (ext.north);
+    \draw[f] (tds.east) -| (umb.north);
+    \draw[f] (ext.east) -| (umb.south);
+    \draw[f] (umb) -- (sal);
+    \draw[f] (ma.east) -- ++(0.9,0) node[s, anchor=west] {dónde está la información};
+  \end{tikzpicture}
+  \caption{Diagrama de bloques del algoritmo. Los recuadros agrupan los bloques de cada módulo del repositorio, y la línea punteada marca el estudio de compresión, que queda fuera del recorrido principal.}
+  \label{fig:esquema}
+\end{figure}
 
 \subsection{Pre-procesamiento}
 \label{sec:preprocesamiento}
 
-\subsubsection{Análisis exploratorio y mejoramiento}
 % Módulo: M1
-\textbf{Análisis exploratorio.} Con las imágenes de entrenamiento se eligió el canal con más contraste entre lesión y piel: en cada imagen se tomaron 2000 píxeles de la lesión (máscara de PH2) y 2000 de piel, y se calculó el área bajo la curva ROC (AUC) de separarlos con un umbral sobre cada canal (R, G, B, H, S, V, L de Lab y gris). También se estimaron valores de referencia en HSV de cada color a partir de las máscaras de color que PH2 incluye en 27 imágenes.
+\textbf{Análisis exploratorio.} Con las imágenes de entrenamiento se eligió el canal con más contraste entre lesión y piel. En cada imagen se tomaron 2000 píxeles de cada una y se calculó el área bajo la curva ROC (AUC) de separarlos con un umbral sobre cada canal (R, G, B, H, S, V, L de Lab y gris).
 
-\textbf{Viñeteo.} Las esquinas oscuras que deja la lente circular se excluyen con una máscara de píxeles válidos. No se usó un umbral fijo de brillo, porque el brillo de las esquinas varía mucho entre imágenes ($V$ entre 0,13 y 0,77) y un umbral que las capture a todas captura también zonas oscuras de 124 de las 140 lesiones de entrenamiento; además, en 50 imágenes la lesión toca el borde. En cambio se aprovecha que la viñeta es circular y centrada: se calcula la mediana de $V$ en anillos concéntricos de 4 píxeles y la viñeta empieza en el primer anillo cuya mediana cae por debajo del 60\,\% del anillo más brillante (figura~\ref{fig:vineta}). La mediana no se ve afectada por una lesión que ocupa sólo una parte del anillo. Para lesiones muy grandes, que ocupan anillos completos, se impone que la viñeta no empiece antes del 80\,\% de la semidiagonal de la imagen.
+\textbf{Viñeteo.} Las esquinas oscuras se excluyen con una máscara de píxeles válidos. Un umbral fijo de brillo no sirve, porque el que captura todas las esquinas captura también zonas oscuras de 124 de las 140 lesiones de entrenamiento. En cambio se aprovecha que la viñeta es circular y centrada, y que la mediana de $V$ en un anillo no se ve afectada por una lesión que ocupa sólo una parte de él. La viñeta empieza en el primer anillo cuya mediana cae por debajo del 60\,\% del anillo más brillante, y nunca antes del 80\,\% de la semidiagonal, para no cortar lesiones muy grandes (figura~\ref{fig:vineta} del anexo).
 
-\textbf{Pelos.} Se detectan con un cierre morfológico del gris con elementos estructurantes lineales de 21 píxeles en 12 orientaciones (cada \ang{15}), tomando el máximo de los cierres: se rellena toda zona oscura que mida menos de 21 píxeles en alguna dirección. Los píxeles donde la diferencia entre el cierre y la imagen original (\emph{black-hat}) supera 0,10 son candidatos \parencite{lee1997}. Como la red de pigmento y los glóbulos también son oscuros y finos, sólo se conservan las regiones con forma de pelo: esqueleto de al menos 60 píxeles, ancho medio (área/largo del esqueleto) de a lo sumo 8 píxeles y eje mayor de al menos 80 píxeles. Los píxeles de pelo se reconstruyen por \emph{inpainting} \parencite{telea2004} y el resto de la imagen no se modifica. Para la hipótesis~1 se compara con no quitar los pelos y con un filtro de mediana de $9\times9$ por canal. La tabla~\ref{tab:param-m1} resume los parámetros.
+\textbf{Pelos.} Se detectan con un cierre morfológico del gris con segmentos de 21 píxeles en 12 orientaciones. Son candidatos los píxeles donde la diferencia entre el cierre y la imagen (\emph{black-hat}) supera 0,10 \parencite{lee1997}. Como la red de pigmento también es oscura y fina, sólo se conservan las regiones largas, finas y alargadas (tabla~\ref{tab:param-m1} del anexo). Esos píxeles se reconstruyen por \emph{inpainting} \parencite{telea2004} y el resto de la imagen no se modifica. Para la hipótesis~1 se compara con no quitar los pelos y con un filtro de mediana de $9\times9$ por canal.
 
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=0.85\textwidth]{m1_vineta}
-  \caption{Detección del viñeteo. Izquierda: mediana del brillo $V$ en anillos concéntricos para una imagen típica (IMD002) y una con la lesión tocando el borde (IMD058); las líneas verticales marcan el radio detectado. Derecha: límite de la zona válida sobre ambas imágenes.}
-  \label{fig:vineta}
-\end{figure}
-
-\begin{table}[h]
-  \centering\small
-  \begin{tabular}{@{}lll@{}}
-    \toprule
-    Etapa & Parámetro & Valor \\
-    \midrule
-    Viñeta & Anillo / umbral / radio mínimo & 4 px / 0,6 del máximo / 0,8 semidiagonal \\
-    Pelos  & Elemento estructurante & segmento de 21 px, 12 orientaciones \\
-           & Umbral del \emph{black-hat} & 0,10 \\
-           & Forma: largo / ancho / eje mayor & $\ge 60$ px / $\le 8$ px / $\ge 80$ px \\
-           & Reconstrucción & \emph{inpainting} de Telea, radio 5 px \\
-    Comparación & Filtro de mediana & $9\times9$ por canal \\
-    \bottomrule
-  \end{tabular}
-  \caption{Parámetros del mejoramiento (módulo M1), elegidos con el conjunto de entrenamiento.}
-  \label{tab:param-m1}
-\end{table}
-
-\subsubsection{Compresión y descompresión}
-% Módulo: M2
-Cada imagen de entrenamiento se comprimió con JPEG a cinco calidades (95, 75, 50, 25 y 10) y se descomprimió, todo en memoria. Se midieron la tasa de compresión (bytes de la imagen sin comprimir, a 8 bits por canal, sobre bytes del JPEG); el PSNR, $10\log_{10}(1/\mathrm{MSE})$ con la señal en $[0,1]$, en toda la imagen y sólo dentro de la lesión; el SSIM, que compara brillo, contraste y estructura en ventanas locales \parencite{wang2004}, y la diferencia de color media dentro de la lesión en el espacio Lab ($\Delta E$, fórmula CIE76), para la que 2,3 es el umbral aproximado de percepción. Cada calidad se resume con la mediana sobre las 140 imágenes. De acuerdo con la devolución del anteproyecto, repetir el algoritmo completo sobre las imágenes comprimidas queda como objetivo de máxima.
+\textbf{Compresión.} Cada imagen de entrenamiento se comprimió con JPEG a calidades 95, 75, 50, 25 y 10, y se midieron la tasa de compresión, el PSNR (en toda la imagen y dentro de la lesión), el SSIM \parencite{wang2004} y la diferencia de color media dentro de la lesión en Lab ($\Delta E$, CIE76), para la que 2,3 es el umbral aproximado de percepción. Cada calidad se resume con la mediana de las 140 imágenes.
 
 \subsection{Segmentación}
 \label{sec:segmentacion}
 % Módulo: M3
-Se comparan el umbral de Otsu \parencite{otsu1979}, el crecimiento de regiones desde el centro de la imagen, k-means y el modelo de Chan-Vese \parencite{chan2001}. Luego se aplica una apertura para eliminar islas, un cierre para unir los huecos del borde y, con el etiquetado, se conserva la región que contiene el centro. Se elige el método con mayor Dice medio en entrenamiento.
-\pendiente{Método elegido y parámetros.}
+Se segmenta sobre el canal azul, que es el que mejor separa la lesión de la piel, suavizado con un filtro gaussiano. Se comparan cinco métodos, que son el umbral de Otsu \parencite{otsu1979}, el crecimiento de regiones, \emph{watershed} con marcadores, k-means sobre el color en Lab y el modelo de Chan-Vese \parencite{chan2001}. A la salida de todos se le aplica una apertura para borrar islas, un cierre para rellenar mellas del borde, la selección de la región que contiene el centro de la imagen y el relleno de huecos.
+
+El crecimiento de regiones arranca del píxel más oscuro de un recuadro central y agrega vecinos mientras no superen un límite de brillo. Ese límite está a mitad de camino entre el brillo típico de la lesión (percentil 5 del recuadro central) y el de la piel (percentil 90 de la zona válida), así que depende de cada imagen y sirve tanto para una lesión oscura como para una clara.
+
+Los parámetros de cada método se eligieron con una grilla sobre las 140 imágenes de entrenamiento, tomando la combinación de mayor Dice medio. Consideramos mal segmentada a una imagen con Dice menor a 0,7. El método elegido fue el crecimiento de regiones, con $\sigma=4$\,px, tolerancia 0,5, apertura de 3\,px y cierre de 10\,px (la comparación se muestra en la sección~\ref{sec:res-segmentacion}).
 
 \subsection{Criterios A, B y C}
 \label{sec:abc}
 % Módulo: M4
-\textbf{Asimetría:} se calculan el centroide y los ejes principales de la máscara, se la refleja sobre cada eje y se mide la fracción de área que no se superpone. Un eje es asimétrico si esa fracción supera un umbral, elegido en entrenamiento para coincidir lo más posible con el dermatólogo, y $A$ es la cantidad de ejes asimétricos. \textbf{Borde:} la lesión se divide en 8 sectores y en cada uno se calcula, con el filtro de Sobel sobre $V$, el gradiente medio sobre el contorno; los sectores con gradiente alto cuentan como borde abrupto. \textbf{Color:} cada píxel se asigna al más cercano de los seis colores de referencia en HSV, y un color está presente si ocupa más de un porcentaje mínimo de la lesión. Se calcula además la circularidad $4\pi\,\text{área}/\text{perímetro}^2$.
+\textbf{Asimetría.} Se calculan el centroide y los ejes principales de la máscara, se la refleja sobre cada eje y se mide la fracción de área que no se superpone. Un eje es asimétrico si esa fracción supera un umbral, elegido en entrenamiento para coincidir lo más posible con el dermatólogo, y $A$ es la cantidad de ejes asimétricos. \textbf{Borde.} La lesión se divide en 8 sectores y en cada uno se calcula, con el filtro de Sobel sobre $V$, el gradiente medio sobre el contorno; los sectores con gradiente alto cuentan como borde abrupto. \textbf{Color.} Cada píxel se asigna al más cercano de los seis colores de referencia en HSV, y un color está presente si ocupa más de un porcentaje mínimo de la lesión. Se calcula además la circularidad $4\pi\,\text{área}/\text{perímetro}^2$.
 \pendiente{Umbrales elegidos y cómo; referencias HSV de los seis colores.}
 
 \subsection{Textura y criterio D adaptado}
 \label{sec:textura}
 % Módulo: M5
-Se calcula la GLCM sobre $V$ dentro de la lesión, promediada en las cuatro direcciones, y sus atributos de energía, entropía, contraste, IDM, correlación, \emph{cluster shade} y \emph{cluster prominence} \parencite{haralick1973}. Como PH2 no anota exactamente las cinco estructuras de la regla, se usa un $D$ adaptado: la cantidad de estructuras que el dermatólogo marcó como presentes. Para estimarlo en una imagen nueva se usa el atributo que más cambia con esa cantidad en entrenamiento, con umbrales que separan los distintos valores de $D$.
-\pendiente{Niveles de gris, distancia, atributo elegido y umbrales.}
+Se calcula la GLCM sobre $V$ usando sólo pares de píxeles dentro de la lesión, promediada en las cuatro direcciones, y de ella se obtienen la energía, la entropía, el contraste, el IDM, la correlación, el \emph{cluster shade} y el \emph{cluster prominence} \parencite{haralick1973}. Se usan 32 niveles de gris y distancia 1, porque en entrenamiento la correlación de Spearman de la mejor medida con $D$ apenas se mueve (de 0,37 a 0,40) entre 8 y 64 niveles y entre distancias 1, 2 y 4. La textura se mide en $V$, como se propuso en el anteproyecto, y no se comparó con otros canales.
+
+Como PH2 no anota exactamente las cinco estructuras de la regla, se usa el $D$ adaptado de la sección~\ref{sec:base}. Para estimarlo en una imagen nueva se toma el atributo que más crece con $D$ en entrenamiento, que resultó ser la correlación ($\rho=0{,}39$), y se cuenta cuántos umbrales supera. Los umbrales se ubican en los cuantiles que hacen que el $D$ estimado se reparta como el del dermatólogo, y valen 0,879, 0,952, 0,970, 0,973 y 0,979. Se descartó ponerlos entre las medianas de cada valor de $D$ porque, con validación cruzada en entrenamiento, estimaba $D=5$ en unas 27 imágenes cuando en realidad hay 4.
 
 \subsection{Zonas de la lesión y mapas de características}
 \label{sec:zonas}
 % Módulo: M6
-\pendiente{(Devolución) Definición de centro, periferia e interfases interna y externa (transformada de distancia, anchos); atributos por zona; contrastes entre zonas propuestos como términos del TDS; mapas de características por ventanas. Figura con las zonas sobre una lesión.}
+Siguiendo la devolución del anteproyecto, se mira por separado el centro, la periferia y la interfase con la piel. Las zonas se definen con la transformada de distancia al borde de la máscara (figura~\ref{fig:zonas}). El centro es donde esa distancia supera la mitad de su máximo y la periferia es el resto de la lesión. Las interfases interna y externa son anillos de 15\,px a cada lado del borde, y la externa no incluye las esquinas de la viñeta. Los 15\,px salen del perfil de brillo alrededor del borde, que en entrenamiento alcanza el 90\,\% del brillo de la piel a 12\,px en la mediana y a 19\,px en el percentil 75.
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.62\textwidth]{m6_zonas}
+  \caption{Las cuatro zonas sobre una lesión de tamaño típico de entrenamiento.}
+  \label{fig:zonas}
+\end{figure}
+
+En cada zona se miden el color medio en HSV y los atributos GLCM de $V$. A partir de ellos se calculan 10 contrastes, restando periferia menos centro y piel menos lesión para $H$, $S$, $V$, contraste y entropía. El signo importa, porque el TDS extendido suma cada término y uno que baje en las sospechosas lo empeoraría. Además, para ver dónde está la información se calculan mapas de un atributo GLCM en ventanas de 31\,px cada 8\,px.
 
 \subsection{Clasificación}
 \label{sec:clasificacion}
 % Módulo: M7
-Una lesión se clasifica como sospechosa si su TDS automático (ec.~\ref{eq:tds}) supera un umbral. Se comparan el umbral clínico (4,75) con el que maximiza la suma de sensibilidad y especificidad en entrenamiento (índice de Youden, \cite{youden1950}). Para la hipótesis 2 se define un TDS extendido sumando al TDS los términos de textura y de zonas elegidos en entrenamiento, estandarizados con la media y el desvío de entrenamiento, y se vuelve a elegir el umbral.
-\pendiente{Términos elegidos.}
+Una lesión se clasifica como sospechosa si su TDS automático (ec.~\ref{eq:tds}) supera un umbral. Se comparan el umbral clínico (4,75) con el que maximiza la suma de sensibilidad y especificidad en entrenamiento (índice de Youden \parencite{youden1950}). Para la hipótesis 2 se define un TDS extendido sumando al TDS los términos de textura y de zonas elegidos en entrenamiento, estandarizados con la media y el desvío de entrenamiento, y se vuelve a elegir el umbral. Los dos términos se eligieron en entrenamiento, antes de mirar prueba, y son la saturación de periferia menos centro (AUC 0,76) y la de piel menos lesión (AUC 0,69). No se eligió el contraste de $V$ entre piel y lesión, aunque su AUC es 0,74, porque se correlaciona con el primero ($\rho=0{,}68$), mientras que los dos elegidos casi no se correlacionan entre sí ($\rho=0{,}08$).
 
 \subsection{Evaluación}
 \label{sec:evaluacion}
-Sobre el conjunto de prueba, la segmentación se compara con la máscara de PH2 mediante el coeficiente de Dice. Los criterios A y C se comparan con el dermatólogo mediante el $\kappa$ de Cohen \parencite{cohen1960}; valores entre 0,41 y 0,60 se consideran un acuerdo moderado \parencite{landis1977}. La clasificación se mide con la sensibilidad, la especificidad y el área bajo la curva ROC (AUC). Para H1 se compara, en las imágenes con pelos, el Dice sin quitar los pelos, con mediana y con cierre; para H2, las métricas del TDS y del TDS extendido.
-\pendiente{Prueba de significancia (p. ej. bootstrap del AUC o prueba de Wilcoxon para el Dice pareado).}
+La segmentación se compara con la máscara de PH2 mediante el coeficiente de Dice, y A y C con el dermatólogo mediante el $\kappa$ de Cohen \parencite{cohen1960}, cuyos valores entre 0,41 y 0,60 indican un acuerdo moderado \parencite{landis1977}. La clasificación se mide con la sensibilidad, la especificidad y el AUC.
 
-\subsection{Interfaz gráfica}
+Para H1 se usa la prueba de Wilcoxon de rangos con signo, porque el Dice se mide de a pares en las mismas imágenes. El intervalo de confianza del 95\,\% del AUC se calcula con un \emph{bootstrap} de percentiles, sorteando 2000 veces con reposición dentro de cada grupo. Para comparar dos AUC se usa el mismo sorteo sobre las mismas imágenes, y la diferencia se considera significativa si su intervalo no incluye al cero.
+
+\subsection{Interfaz gráfica y código}
 \label{sec:interfaz}
-% Carpeta: interfaz/
-\pendiente{Aplicación de escritorio en tkinter (\texttt{python interfaz/app.py}): captura y descripción breve de su manejo (elegir imagen y métodos; ver máscara de pelos, contorno, colores, zonas, mapa de textura, A, B, C, D, TDS y clasificación).}
-
-\subsection{Código y repositorio}
 \label{sec:codigo}
-La consigna pide detallar el contenido de cada archivo de Python. El código está en el repositorio \pendiente{link}. Cada módulo tiene un archivo \texttt{.py} con las funciones y un cuaderno \texttt{.ipynb} con las pruebas, figuras y discusión.
+La interfaz es una aplicación de escritorio en tkinter, que se abre con \texttt{python interfaz/app.py}. Permite elegir una imagen de prueba de PH2 o una propia y el método para quitar los pelos, y muestra la máscara de pelos, el contorno automático junto al de referencia, las zonas y los mapas de textura. Sólo llama a las funciones de los módulos, de modo que lo que se ve es lo mismo que se evalúa.
+\pendiente{Agregar una captura de la interfaz y mencionar A, B, C, D, TDS y clasificación cuando esté M4.}
 
-\begin{table}[h]
-  \centering\footnotesize
-  \begin{tabular}{@{}lll@{}}
-    \toprule
-    Carpeta & Archivo & Contenido \\
-    \midrule
-    raíz & \texttt{main.py} & Verifica módulos, procesa imágenes y genera resultados \\
-    M0 & \texttt{carga\_de\_datos.py} & Lectura de PH2, alcance y partición \\
-    M1 & \texttt{mejoramiento.py} & Viñeta y remoción de pelos \\
-    M2 & \texttt{compresion.py} & JPEG, tasa de compresión, PSNR y SSIM \\
-    M3 & \texttt{segmentacion.py} & Métodos de segmentación, posprocesamiento y Dice \\
-    M4 & \texttt{criterios\_abc.py} & Asimetría, borde, colores y circularidad \\
-    M5 & \texttt{textura\_criterio\_d.py} & GLCM y criterio D adaptado \\
-    M6 & \texttt{zonas\_y\_mapas.py} & Zonas de la lesión y mapas de características \\
-    M7 & \texttt{clasificacion\_resultados.py} & TDS, umbrales, métricas y figuras finales \\
-    herramientas & \texttt{*.py} & Pegamento, verificación, gráficos y lesiones de prueba \\
-    interfaz & \texttt{app.py} & Interfaz gráfica \\
-    \bottomrule
-  \end{tabular}
-  \caption{Archivos de Python del repositorio. Cada módulo M$n$ está en \texttt{modulos/m$n$\_\ldots/}.}
-  \label{tab:archivos}
-\end{table}
+El código está en \url{https://github.com/facortega/PSIB2026Q2-TPI-Grupo02-CassanoNieto-DElia-Ortega}. Cada módulo tiene un archivo \texttt{.py} con las funciones y un cuaderno \texttt{.ipynb} con las pruebas, las figuras y la discusión. La tabla~\ref{tab:archivos} del anexo detalla el contenido de cada archivo.
+
+

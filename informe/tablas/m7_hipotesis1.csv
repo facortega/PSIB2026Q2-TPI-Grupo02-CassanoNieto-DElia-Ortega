@@ -1,0 +1,5 @@
+conjunto,imágenes con pelos,comparación,Dice medio cierre,Dice medio rival,mejora en,empeora en,p de Wilcoxon
+entrenamiento,30,cierre - ninguno,0.8728363895940181,0.8927780532168851,10,20,0.10039735585451126
+entrenamiento,30,cierre - mediana,0.8728363895940181,0.8979959261468964,9,21,0.024786051362752914
+prueba,9,cierre - ninguno,0.83843004179909,0.8405940887859376,4,5,0.65234375
+prueba,9,cierre - mediana,0.83843004179909,0.840868004101327,3,6,0.359375

@@ -28,9 +28,9 @@ ATRIBUTOS = ("energia", "entropia", "contraste", "idm", "correlacion",
              "cluster_shade", "cluster_prominence")
 
 # ------------------------------ Parámetros ------------------------------
-# AGREGADO (M5): elegidos con ENTRENAMIENTO y la máscara de referencia (ver cuaderno).
+# AGREGADO (M5): elegidos con ENTRENAMIENTO y la máscara de M3 (ver cuaderno).
 # DECIDIDO: NIVELES y DISTANCIA casi no cambian cuánto sigue cada atributo a D: la correlación
-# de Spearman del mejor atributo queda entre 0,44 y 0,46 con 8, 16, 32 o 64 niveles y con
+# de Spearman de "correlacion" queda entre 0,37 y 0,40 con 8, 16, 32 o 64 niveles y con
 # distancia 1, 2 o 4. Se deja 32 porque conserva detalle sin dejar la matriz casi vacía
 # (64 niveles son 4096 celdas), y distancia 1 porque es la más simple y no pierde nada.
 NIVELES = 32
@@ -111,7 +111,7 @@ def elegir_atributo_d(tabla):
     no hace falta suponer una relación lineal. Se usa rho y no |rho| porque D estimado es la
     cantidad de umbrales superados: un atributo que baja con D daría el D al revés, y
     completar_d no le pasa el signo a estimar_d. No se pierde nada: en entrenamiento los dos
-    que más cambian (correlacion, 0,45; cluster_prominence, 0,43) ya crecen con D.
+    que más cambian (correlacion, 0,39; cluster_prominence, 0,38) ya crecen con D.
 
     Entra: tabla   DataFrame con columnas "glcm_<atributo>" y "D_derm" (sólo ENTRENAMIENTO)
     Sale : str, nombre de la columna elegida
@@ -124,8 +124,8 @@ def ajustar_umbrales_d(valores, d_derm):
 
     DECIDIDO: cuantiles, de modo que el D estimado se reparta como el del dermatólogo. Los
     puntos medios entre medianas daban peor resultado (validación cruzada en entrenamiento:
-    acierto 20 % contra 32 %, error medio 1,31 contra 0,97) porque hay muy pocas imágenes
-    con D alto (4 con D = 5) y sus medianas no crecen con D: se estimaba D = 5 en unas 20
+    acierto 21 % contra 30 %, error medio 1,42 contra 1,04) porque hay muy pocas imágenes
+    con D alto (4 con D = 5) y sus medianas no crecen con D: se estimaba D = 5 en unas 27
     imágenes en vez de 4, y eso infla el TDS.
 
     Entra: valores  array float con el atributo de cada imagen de ENTRENAMIENTO

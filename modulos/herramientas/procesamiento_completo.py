@@ -43,6 +43,15 @@ class Resultado:
 
 
 def procesar(caso, hasta="zonas", metodo_pelos="cierre", metodo_seg=None, calidad_jpeg=None):
+    """Corre el algoritmo sobre una imagen, en orden, hasta la etapa pedida.
+
+    Entra: caso          Caso de M0
+           hasta         str, una de ETAPAS
+           metodo_pelos  str, uno de mejoramiento.METODOS_PELOS
+           metodo_seg    str, uno de segmentacion.METODOS; None usa el elegido
+           calidad_jpeg  int de 1 a 100 para comprimir antes de procesar; None no comprime
+    Sale : Resultado con lo calculado hasta esa etapa
+    """
     if hasta not in ETAPAS:
         raise ValueError(f"'hasta' tiene que ser una de estas: {ETAPAS}")
     ultima = ETAPAS.index(hasta)
@@ -74,7 +83,13 @@ def procesar(caso, hasta="zonas", metodo_pelos="cierre", metodo_seg=None, calida
 
 
 def procesar_todos(conjunto="todos", hasta="zonas", **kwargs):
-    """Procesa todas las imágenes de un conjunto ("entrenamiento", "prueba" o "todos")."""
+    """Procesa todas las imágenes de un conjunto.
+
+    Entra: conjunto  "entrenamiento", "prueba" o "todos"
+           hasta     str, una de ETAPAS
+           kwargs    los demás argumentos de procesar()
+    Sale : lista de Resultado
+    """
     tabla = carga_de_datos.leer_tabla_ph2()
     salida = []
     for nombre in carga_de_datos.nombres(conjunto):
@@ -87,6 +102,9 @@ def tabla_de_caracteristicas(resultados):
     """Una fila por imagen con todo lo medido y lo anotado por el dermatólogo.
 
     Las imágenes (que ocupan mucho) no se guardan: sólo los números.
+
+    Entra: resultados  lista de Resultado
+    Sale : DataFrame con una fila por imagen
     """
     particion = carga_de_datos.leer_particion().set_index("nombre")["conjunto"]
     filas = []
@@ -112,7 +130,11 @@ def tabla_de_caracteristicas(resultados):
 
 
 def completar_d(tabla):
-    """Agrega la columna "D" (criterio D estimado) ajustando SOLO con entrenamiento."""
+    """Agrega la columna "D" (criterio D estimado) ajustando SOLO con entrenamiento.
+
+    Entra: tabla  DataFrame de tabla_de_caracteristicas, con las columnas glcm_*, D_derm y conjunto
+    Sale : copia de la tabla con "D"; attrs guarda el atributo y los umbrales usados
+    """
     entrenamiento = tabla[tabla["conjunto"] == "entrenamiento"]
     atributo = textura_criterio_d.elegir_atributo_d(entrenamiento)
     umbrales = textura_criterio_d.ajustar_umbrales_d(entrenamiento[atributo].to_numpy(),

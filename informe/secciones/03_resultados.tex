@@ -4,71 +4,93 @@
 
 \subsection{Pre-procesamiento}
 
-\paragraph{Canal de trabajo.} La tabla~\ref{tab:auc-canal} muestra el AUC de cada canal para separar píxeles de lesión y de piel. El canal azul es el que más contraste ofrece, lo que es coherente con que la melanina absorbe más la luz azul que la roja. El canal $V$, propuesto en el anteproyecto, está entre los peores: como $V=\max(R,G,B)$ y en la piel y la lesión domina el rojo, $V\approx R$. Por eso la segmentación se hace sobre $B$. \pendiente{Indicar qué canal usan finalmente M4 (borde) y M5 (textura).}
+\paragraph{Canal de trabajo.} El canal azul es el que mejor separa la lesión de la piel en entrenamiento (AUC medio 0,976, seguido por $G$ con 0,965), lo que es coherente con que la melanina absorbe más la luz azul que la roja. El canal $V$, propuesto en el anteproyecto, queda entre los peores (0,902), porque $V=\max(R,G,B)$ y en la piel y la lesión domina el rojo. Por eso la segmentación se hace sobre $B$. \pendiente{Indicar qué canal usa M4 para el borde.}
 
-\begin{table}[h]
+\paragraph{Viñeteo y pelos.} Con el perfil radial, sólo 4 de las 200 imágenes pierden más del 2\,\% de la lesión por quedar fuera de la zona válida (máximo 5,9\,\%). En cuanto a los pelos, el cierre reconstruye sólo sus píxeles, mientras que la mediana suaviza toda la imagen, incluidas la red y el borde (figura~\ref{fig:pelos} del anexo). El filtro de forma es lo que evita borrar la red. En IMD200, que no tiene pelos, el umbral solo marca como pelo el 28\,\% de la lesión, y el filtro completo, el 1\,\% (figura~\ref{fig:filtro-forma} del anexo).
+
+
+
+\paragraph{Hipótesis 1.} Se consideran con pelos las imágenes con más del 10\,\% de sus píxeles marcados, que son 30 de entrenamiento y 9 de prueba. La hipótesis no se confirmó (tabla~\ref{tab:h1}). En entrenamiento, el cierre empeora más imágenes de las que mejora, y la diferencia sólo es significativa frente a la mediana. En prueba no se detecta diferencia. El promedio de entrenamiento cae sobre todo por cuatro imágenes (IMD331, IMD418, IMD403 e IMD404) que pierden más de 0,1 de Dice, ya que las medianas de los tres métodos casi coinciden (0,906, 0,913 y 0,906). El algoritmo mantiene el cierre porque, a diferencia de la mediana, no suaviza la red de pigmento que mide M5, y porque cambiarlo después de mirar prueba invalidaría la evaluación.
+
+\begin{table}[!htb]
   \centering\small
-  \begin{tabular}{@{}lcccccccc@{}}
+  \begin{tabular}{@{}lccccc@{}}
     \toprule
-    & B & G & gris & L & S & R & V & H \\
+    & \multicolumn{3}{c}{Dice medio} & \multicolumn{2}{c}{Cierre mejora / empeora (p)} \\
+    Conjunto (imágenes) & Sin quitar & Mediana & Cierre & Frente a sin quitar & Frente a mediana \\
     \midrule
-    AUC medio  & 0,976 & 0,965 & 0,963 & 0,961 & 0,941 & 0,902 & 0,902 & 0,715 \\
-    AUC mínimo & 0,776 & 0,797 & 0,803 & 0,791 & 0,581 & 0,570 & 0,569 & 0,505 \\
+    Entrenamiento (30) & 0,893 & 0,898 & 0,873 & 10 / 20 (0,10) & 9 / 21 (0,025) \\
+    Prueba (9) & 0,841 & 0,841 & 0,838 & 4 / 5 (0,65) & 3 / 6 (0,36) \\
     \bottomrule
   \end{tabular}
-  \caption{AUC de cada canal para separar píxeles de lesión y de piel (promedio y peor caso sobre las 140 imágenes de entrenamiento).}
-  \label{tab:auc-canal}
+  \caption{Segmentación de las imágenes con pelos según cómo se quitan. El valor p es de la prueba de Wilcoxon.}
+  \label{tab:h1}
 \end{table}
 
-\paragraph{Referencias de color.} Las máscaras de color de PH2 resultaron poco útiles para el criterio C: son regiones gruesas, todos los colores tienen un matiz mediano parecido ($H$ entre 0,03 y 0,06), el rojo no tiene muestras en entrenamiento y el blanco aparece en sólo 2 imágenes. \pendiente{(M4) Estrategia adoptada para las referencias de color.}
+\paragraph{Compresión.} Incluso a calidad 95 el archivo ocupa unas 8 veces menos, con una pérdida imperceptible (tabla~\ref{tab:compresion} del anexo). A esa calidad el PSNR dentro de la lesión es de 40,7\,dB y el SSIM de 0,97, y a calidad 10 bajan a 28,7\,dB y 0,70. El SSIM cae más que el PSNR al bajar la calidad, lo que indica que lo más afectado es la estructura local, es decir, la textura, y a calidad 10 la red de pigmento se reemplaza por bloques de $8\times8$ (figura~\ref{fig:compresion} del anexo). Esperábamos entonces que la segmentación resistiera mejor que la textura y el borde, pero no lo comprobamos, porque no se llegó a repetir el algoritmo sobre imágenes comprimidas.
 
-\paragraph{Viñeteo.} Con el perfil radial, sólo 4 de las 200 imágenes pierden más del 2\,\% de la lesión por quedar fuera de la zona válida (máximo 5,9\,\%, IMD411), y esos píxeles están dentro de la esquina oscura. Sin el radio mínimo, cinco lesiones muy grandes perdían hasta el 60\,\%.
 
-\paragraph{Pelos.} En 30 de las 140 imágenes de entrenamiento se detecta pelo en más del 10\,\% de la imagen; ese es el conjunto ``con pelos'' de la hipótesis~1. La figura~\ref{fig:pelos} muestra el resultado en una imagen con muchos pelos y en una sin pelos con red de pigmento marcada: el cierre reconstruye sólo los píxeles de pelo, mientras que la mediana suaviza toda la imagen, incluidas la red y el borde de la lesión. El filtro de forma es lo que evita borrar la red: en IMD200, que no tiene pelos, el umbral solo marca como pelo el 28\,\% de la lesión; con las condiciones de largo y ancho, el 14\,\%, y agregando el eje mayor, el 1\,\%, sin cambios apreciables en las imágenes con pelos (figura~\ref{fig:filtro-forma} del anexo).
 
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=\textwidth]{m1_pelos}
-  \caption{Remoción de pelos en una imagen con muchos pelos (IMD003) y en una sin pelos con red de pigmento (IMD200): original, pelos detectados, cierre con \emph{inpainting} y filtro de mediana.}
-  \label{fig:pelos}
-\end{figure}
 
-\pendiente{Hipótesis 1: Dice de la segmentación sin quitar pelos, con mediana y con cierre en las imágenes con pelos (cuando M3 esté listo).}
-
-\paragraph{Compresión.} La tabla~\ref{tab:compresion} resume la compresión JPEG. Incluso a calidad 95 el archivo ocupa unas 8 veces menos, con una pérdida imperceptible (PSNR mayor a 40\,dB, SSIM de 0,97 y $\Delta E$ por debajo de 2,3). La lesión pierde siempre un poco más que la imagen completa (PSNR alrededor de 1\,dB menor), porque concentra el detalle fino que la cuantización descarta. El SSIM cae más que el PSNR al bajar la calidad (de 0,97 a 0,70), lo que indica que lo más afectado es la estructura local, es decir, la textura; y el cambio de color se vuelve perceptible desde calidad 75. A calidad 10 la red de pigmento se reemplaza por bloques de $8\times8$ (figura~\ref{fig:compresion}). Se espera entonces que la segmentación resista bien la compresión y que la textura (D) y el borde (B) sean los criterios más sensibles. \pendiente{Objetivo de máxima: Dice, sensibilidad y especificidad en función de la calidad, si se llega a hacer.}
-
-\begin{table}[h]
-  \centering\small
-  \begin{tabular}{@{}cccccc@{}}
-    \toprule
-    Calidad & Tasa & PSNR (dB) & PSNR lesión (dB) & SSIM & $\Delta E$ lesión \\
-    \midrule
-    95 & 8,2   & 41,1 & 40,7 & 0,97 & 1,9 \\
-    75 & 23,7  & 35,9 & 34,9 & 0,89 & 2,7 \\
-    50 & 39,7  & 34,5 & 33,4 & 0,85 & 3,2 \\
-    25 & 67,7  & 32,8 & 31,7 & 0,80 & 3,9 \\
-    10 & 121,8 & 29,6 & 28,7 & 0,70 & 5,8 \\
-    \bottomrule
-  \end{tabular}
-  \caption{Compresión JPEG: mediana de cada métrica sobre las 140 imágenes de entrenamiento.}
-  \label{tab:compresion}
-\end{table}
-
-\begin{figure}[h]
-  \centering
-  \includegraphics[width=\textwidth]{m2_detalle}
-  \caption{Detalle de la red de pigmento de IMD200 en la imagen original y comprimida a calidades 75, 25 y 10 (entre paréntesis, la tasa de compresión).}
-  \label{fig:compresion}
-\end{figure}
 
 \subsection{Segmentación}
-\pendiente{M3: Dice de cada método en entrenamiento (para la elección) y del elegido en prueba; ejemplos buenos y malos con ambos contornos.}
+\label{sec:res-segmentacion}
+Los cinco métodos quedaron muy cerca en entrenamiento (tabla~\ref{tab:metodos}). Elegimos el crecimiento de regiones aunque \emph{watershed} tiene un Dice medio 0,003 mayor, porque esa diferencia es despreciable, falla en una imagen menos y es casi diez veces más rápido. k-means quedó último, con 10 imágenes mal segmentadas.
+
+\begin{table}[!htb]
+  \centering\small
+  \begin{tabular}{@{}lccccc@{}}
+    \toprule
+    Método & Dice medio & Mediana & Peor & Dice $<$ 0,7 & Segundos por imagen \\
+    \midrule
+    \emph{Watershed} & 0,911 & 0,936 & 0,504 & 3 & 0,151 \\
+    \textbf{Crecimiento de regiones} & \textbf{0,908} & \textbf{0,931} & \textbf{0,501} & \textbf{2} & \textbf{0,016} \\
+    Otsu & 0,906 & 0,940 & 0,262 & 6 & 0,013 \\
+    Chan-Vese & 0,900 & 0,938 & 0,262 & 7 & 0,351 \\
+    k-means & 0,880 & 0,925 & 0,259 & 10 & 0,207 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Métodos de segmentación con su mejor combinación de parámetros, sobre las 140 imágenes de entrenamiento.}
+  \label{tab:metodos}
+\end{table}
+
+En las 60 imágenes de prueba, el crecimiento de regiones da un Dice medio de 0,916 y una mediana de 0,946, muy parecidos a los de entrenamiento. Encuentra el 82,8\,\% de los píxeles de lesión y marca como lesión sólo el 1,1\,\% de los de piel, así que su error típico es quedarse corto. Falla en 2 de las 60 imágenes de prueba y en 2 de las 140 de entrenamiento, y las 4 son melanomas con azul grisáceo en los que dejó lesión afuera (figura~\ref{fig:casos} del anexo). El azul grisáceo refleja bastante luz azul y por eso en el canal $B$ se ve casi como la piel. Aun así, 34 de las 38 imágenes con ese color salen bien, y ningún otro método resolvió estos casos sin empeorar el resto.
 
 \subsection{Criterios y comparación con el dermatólogo}
-\pendiente{M4/M5: $\kappa$ de A y C; acuerdo de D adaptado; ejemplos de mapa de colores.}
+El criterio D estimado resultó débil como medida de D. En validación cruzada dentro de entrenamiento acierta el valor exacto en el 30\,\% de las imágenes, menos que decir siempre la mediana (37\,\%), y su acuerdo con el dermatólogo es casi nulo ($\kappa=0{,}06$). En prueba acierta en el 40\,\%, también menos que la mediana de entrenamiento (50\,\%), con $\kappa=0{,}17$. Tiene sentido, porque un solo número global de textura no puede contar cinco estructuras distintas.
+\pendiente{Con M4, $\kappa$ de A y de C, referencias de color y ejemplos del mapa de colores.}
 
 \subsection{Zonas y mapas de características}
-\pendiente{M6: mapas en un nevo común y un melanoma; diferencias entre zonas por grupo.}
+Los mapas sugieren que la información no está repartida de manera pareja (figura~\ref{fig:mapas}), aunque son dos ejemplos y no una prueba. Medido en las 140 imágenes de entrenamiento, en los nevos comunes la mediana de la entropía baja de adentro hacia afuera (4,40 en el centro, 4,31 en la periferia y 4,16 en la interfase interna), y en las sospechosas esa caída no aparece (4,31, 4,40 y 4,33). Un número global promedia esos comportamientos opuestos.
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.78\textwidth]{m6_mapas}
+  \caption{Mapas de entropía, correlación y contraste en un nevo común y un melanoma de entrenamiento. El hueco del mapa del melanoma es una zona central clara que la máscara automática dejó afuera.}
+  \label{fig:mapas}
+\end{figure}
+
+La tabla~\ref{tab:auc-prueba} muestra qué pasó al llevar estas medidas a prueba. D estimado cae a un AUC de 0,60 y su intervalo incluye al 0,5, de modo que no se puede afirmar que separe los grupos. La saturación de periferia menos centro es la única medida automática cuyo intervalo no incluye al 0,5, aunque hay que leerla con cuidado, porque sigue de cerca al brillo de la lesión ($\rho=-0{,}67$ en prueba) y ese brillo solo da un AUC parecido. Con estos datos no podemos separar los dos efectos. La saturación de piel menos lesión queda en 0,60, con un intervalo que incluye al 0,5, y además baja cuando M3 acierta más ($\rho=-0{,}42$ con el Dice), así que en parte mide errores de segmentación.
+
+\begin{table}[!htb]
+  \centering\small
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    Medida & AUC entrenamiento & AUC prueba & IC 95\,\% en prueba \\
+    \midrule
+    D del dermatólogo (techo) & 0,92 & 0,88 & 0,81 a 0,94 \\
+    D estimado & 0,73 & 0,60 & 0,46 a 0,74 \\
+    Periferia menos centro, $S$ & 0,76 & 0,71 & 0,58 a 0,84 \\
+    Piel menos lesión, $S$ & 0,69 & 0,60 & 0,46 a 0,75 \\
+    Oscuridad de la lesión ($-V$) & 0,75 & 0,68 & 0,54 a 0,80 \\
+    $0{,}5\,D$ más los dos términos de zonas & 0,83 & 0,71 & 0,58 a 0,84 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Capacidad de cada medida para separar lesiones sospechosas de nevos comunes (140 imágenes de entrenamiento y 60 de prueba).}
+  \label{tab:auc-prueba}
+\end{table}
+
+La última fila de la tabla es el TDS extendido sin A, B ni C, que no es el TDS y sirve sólo para ver si las zonas agregan algo a D. Sube el AUC en 0,11 respecto de D estimado, pero el intervalo de esa diferencia (de $-0{,}01$ a 0,23) incluye al cero, así que la mejora no es significativa. Con el umbral elegido en entrenamiento alcanza en prueba una sensibilidad de 0,81 y una especificidad de 0,54, frente a 0,56 y 0,63 de D estimado solo.
 
 \subsection{Clasificación}
-\pendiente{M7: tabla TDS (umbral clínico) / TDS (Youden) / TDS extendido $\rightarrow$ sensibilidad, especificidad, AUC; curvas ROC; distribución del TDS por grupo.}
+\pendiente{Falta M4. Tabla de TDS con umbral clínico, TDS con umbral de Youden y TDS extendido (sensibilidad, especificidad y AUC con su intervalo), curvas ROC y distribución del TDS por grupo. El código ya está en \texttt{m7.generar}, que guarda \texttt{m7\_clasificacion}, \texttt{m7\_acuerdo}, \texttt{m7\_roc} y \texttt{m7\_tds\_grupos}.}

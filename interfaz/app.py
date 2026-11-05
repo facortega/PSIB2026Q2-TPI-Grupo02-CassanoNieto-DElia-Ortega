@@ -4,7 +4,7 @@ Uso, desde la carpeta del repo:
 
     python interfaz/app.py
 
-1. Elegir una imagen de PH2 (conjunto de prueba), una imagen propia o una lesión inventada.
+1. Elegir una imagen de PH2 (conjunto de prueba) o una imagen propia.
 2. Elegir cómo se quitan los pelos y, cuando esté M3, el método de segmentación.
 3. Procesar: corre el algoritmo en segundo plano y muestra el avance en el registro.
 4. Ver los resultados: A, B, C, D, el TDS y la clasificación, comparados con PH2; los
@@ -50,7 +50,6 @@ from PIL import Image, ImageTk
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from modulos.herramientas import graficos, procesamiento_completo  # noqa: E402
-from modulos.herramientas.lesion_de_prueba import generar_lesion  # noqa: E402
 from modulos.m0_carga_de_datos import carga_de_datos  # noqa: E402
 from modulos.m1_mejoramiento import mejoramiento  # noqa: E402
 from modulos.m3_segmentacion import segmentacion  # noqa: E402
@@ -257,7 +256,6 @@ class Aplicacion(tk.Tk):
         self.cola = queue.Queue()      # Lo que manda el trabajo en segundo plano a la ventana
         self.version = 0               # Para descartar resultados de una imagen anterior
         self.procesando = False
-        self.semilla = 0
         self.fotos = {}                # Tk borra las fotos si nadie guarda una referencia
         self.hay_m3 = hay_segmentacion()
 
@@ -266,8 +264,6 @@ class Aplicacion(tk.Tk):
         self.after(50, self._revisar_cola)
         if self.nombres_ph2:
             self.elegir_ph2()
-        else:
-            self.elegir_inventada()
 
     # ---------------- Aspecto ----------------
 
@@ -447,8 +443,6 @@ class Aplicacion(tk.Tk):
         fila.pack(fill="x")
         self.btn_propia = ttk.Button(fila, text="Imagen propia…", command=self.elegir_propia)
         self.btn_propia.pack(side="left")
-        self.btn_inventada = ttk.Button(fila, text="Lesión inventada", command=self.elegir_inventada)
-        self.btn_inventada.pack(side="left", padx=(8, 0))
         self.lbl_imagen = ttk.Label(marco, style="Dato.TLabel", wraplength=370)
         self.lbl_imagen.pack(anchor="w", pady=(10, 2))
         self.lbl_detalle = ttk.Label(marco, style="Sub.TLabel", wraplength=370, justify="left")
@@ -624,8 +618,8 @@ class Aplicacion(tk.Tk):
         ttk.Label(derecha, text="Contrastes entre zonas", style="Dato.TLabel").pack(anchor="w", pady=(0, 6))
         self.t_contrastes = self._tabla(derecha, ("Atributo", "Periferia − centro", "Piel − lesión"), (160, 140, 120), len(NOMBRES_CONTRASTE))
         self.t_contrastes.pack(fill="x")
-        ttk.Label(derecha, text="En entrenamiento, los que más separan a las sospechosas son la saturación de periferia − "
-                                "centro y la de piel − lesión (valores provisorios, medidos con la máscara de referencia).",
+        ttk.Label(derecha, text="En entrenamiento, con la máscara de M3, el que más separa a las sospechosas es la saturación "
+                                "de periferia − centro.",
                   style="Sub.TLabel", wraplength=430, justify="left").pack(anchor="w", pady=(10, 0))
 
     # ---------------- Elegir imagen ----------------
@@ -659,17 +653,6 @@ class Aplicacion(tk.Tk):
         img = np.asarray(imagen, float) / 255
         detalle = f"{img.shape[1]} x {img.shape[0]} px  ·  sin máscara de referencia ni anotaciones"
         self._cargar(img, None, Path(ruta).name, detalle, None)
-
-    def elegir_inventada(self):
-        """Genera una lesión inventada distinta cada vez.
-
-        Entra: nada
-        Sale : nada
-        """
-        img, info = generar_lesion(semilla=self.semilla, pelos=20, irregularidad=0.25, textura=0.3)
-        self._cargar(img, info["mascara"], f"Lesión inventada (semilla {self.semilla})",
-                     "Sirve para probar el programa, no para sacar conclusiones.", None)
-        self.semilla += 1
 
     def _cargar(self, img, ref, titulo, detalle, caso):
         """Deja lista una imagen para procesar y borra los resultados anteriores.
@@ -724,7 +707,6 @@ class Aplicacion(tk.Tk):
         estado = ["!disabled"] if si else ["disabled"]
         self.btn_procesar.state(estado)
         self.btn_propia.state(estado)
-        self.btn_inventada.state(estado)
 
     # ---------------- Procesamiento en segundo plano ----------------
 

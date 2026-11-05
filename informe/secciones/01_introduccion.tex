@@ -15,32 +15,28 @@ Un TDS menor a 4,75 indica una lesión benigna; entre 4,75 y 5,45, una lesión s
 \subsection{Marco teórico}
 \label{sec:marco}
 
-\paragraph{Imagen dermatoscópica y color.} Es una imagen RGB en la que el color tiene valor diagnóstico, porque depende de la profundidad del pigmento: los marrones y el negro indican melanina en la epidermis; el azul grisáceo, melanina en la dermis, y el blanco, zonas de regresión. Por eso conviene trabajar en el espacio HSV, que separa el matiz ($H$) y la saturación ($S$) del brillo ($V$).
+La imagen dermatoscópica es una imagen RGB en la que el color tiene valor diagnóstico, porque depende de la profundidad del pigmento. Los marrones y el negro indican melanina en la epidermis, el azul grisáceo indica melanina en la dermis y el blanco, zonas de regresión. Por eso conviene trabajar en el espacio HSV, que separa el matiz ($H$) y la saturación ($S$) del brillo ($V$). Antes de medir ese color hay que lidiar con los artefactos de la imagen. La lente circular deja esquinas oscuras (viñeteo), y los pelos que cruzan la lesión, que se ven como líneas oscuras y finas, desplazan el borde segmentado y agregan un color que no le pertenece. Estos pueden quitarse con un cierre morfológico con un elemento estructurante más ancho que un pelo y más chico que la lesión, idea en la que se basa DullRazor \parencite{lee1997}.
 
-\paragraph{Artefactos.} Los pelos que cruzan la lesión (líneas oscuras y finas) desplazan el borde segmentado y agregan un color que no pertenece a la lesión. Pueden quitarse con un cierre morfológico (dilatación seguida de erosión) con un elemento estructurante más ancho que un pelo y más chico que la lesión, idea en la que se basa DullRazor \parencite{lee1997}. También aparecen burbujas por el gel de inmersión y esquinas oscuras por la lente circular (viñeteo).
+Además del color, la regla mira las estructuras diferenciales, que son patrones que se repiten dentro de la lesión y que pueden describirse como textura. Una forma clásica de medirla es la matriz de co-ocurrencia de niveles de gris (GLCM), que cuenta con qué frecuencia aparecen juntos dos niveles de gris a una distancia y dirección dadas, y de la que se obtienen atributos como la entropía, el contraste y la correlación \parencite{haralick1973}. Sin embargo, estas estructuras no se reparten al azar dentro de la lesión. Las estrías, por ejemplo, aparecen de forma focal y asimétrica en la periferia, y las áreas claras sin estructura en la periferia también se asocian al melanoma \parencite{braun2026}. Un único número calculado sobre toda la lesión puede entonces promediar zonas que se comportan distinto. La interfase con la piel importa por otro motivo, ya que el criterio B puntúa justamente los sectores donde el pigmento termina de golpe \parencite{nachbar1994}, y comparar la lesión con la piel vecina permite medir ese cambio de forma continua.
 
-\paragraph{Textura.} Las estructuras diferenciales son patrones que se repiten dentro de la lesión. La matriz de co-ocurrencia de niveles de gris (GLCM) cuenta con qué frecuencia aparecen juntos dos niveles de gris a una distancia y dirección dadas, y de ella se obtienen atributos como la energía, la entropía, el contraste, la homogeneidad y la correlación \parencite{haralick1973}.
-
-\paragraph{Zonas de la lesión.} \pendiente{(Devolución) Por qué mirar por separado el centro, la periferia y la interfase con la piel: qué estructuras de la regla aparecen típicamente en cada zona (red de pigmento atípica y estrías en la periferia, velo y regresión en el centro...) y qué indica un cambio abrupto entre lesión y piel. Citar.}
-
-\paragraph{Compresión.} JPEG es el formato con pérdida más usado para guardar y transmitir fotografías, incluidas las dermatoscópicas en teledermatología \parencite{wallace1991}. Pasa la imagen a brillo y color (YCbCr) y guarda el color a la mitad de resolución en cada eje (submuestreo 4:2:0); divide el brillo y el color en bloques de $8\times8$, les aplica la transformada discreta del coseno y cuantiza los coeficientes, descartando sobre todo las frecuencias altas. Un parámetro de calidad (de 1 a 100) controla cuánto se cuantiza. Lo que se pierde es justamente el detalle fino y parte del color, es decir, la red de pigmento, el borde y los colores que usa la regla ABCD.
+Todo este detalle puede perderse al guardar o transmitir las imágenes. JPEG, el formato con pérdida más usado para fotografías \parencite{wallace1991}, guarda el color a la mitad de resolución, divide la imagen en bloques de $8\times8$, les aplica la transformada discreta del coseno y cuantiza los coeficientes según un parámetro de calidad (de 1 a 100), descartando sobre todo las frecuencias altas. Lo que se pierde es justamente el detalle fino y parte del color que usa la regla ABCD.
 
 \subsection{Estado del arte}
 \label{sec:estado-arte}
 
-Los sistemas de diagnóstico asistido segmentan la lesión, miden descriptores de forma, color y textura y los entregan a un clasificador \parencite{celebi2007}. Las redes neuronales convolucionales ya alcanzan un desempeño comparable al de los dermatólogos \parencite{esteva2017}, pero no muestran en qué se basa cada decisión, y la mayoría solo informa el diagnóstico final, por lo que no permiten comprobar si cada criterio se mide bien.
-\pendiente{(Devolución) Ya hay varios trabajos de este tipo: lo innovador acá es el enfoque y el algoritmo. Agregar 2-3 trabajos con criterios ABCD automáticos y sus resultados en PH2 (para comparar en las Conclusiones) y precisar qué aporta este trabajo: criterios medidos por separado, validados contra el dermatólogo, y mapas que muestran \emph{dónde} está la información.}
+Los sistemas de diagnóstico asistido segmentan la lesión, miden descriptores de forma, color y textura y los entregan a un clasificador \parencite{celebi2007}. Las redes neuronales convolucionales ya alcanzan un desempeño comparable al de los dermatólogos \parencite{esteva2017}, pero no muestran en qué se basa cada decisión, y la mayoría sólo informa el diagnóstico final, por lo que no permiten comprobar si cada criterio se mide bien.
+
+Medir la regla ABCD de forma automática tampoco es una idea nueva. Un trabajo la implementó sobre 200 imágenes dermatoscópicas, 80 de melanomas y 120 de lesiones benignas, y obtuvo una sensibilidad de 91,25\,\% y una especificidad de 95,83\,\% \parencite{kasmi2016}. Otro, sobre PH2, combinó color y textura con una máquina de vectores de soporte y separó melanomas de nevos con una sensibilidad de 99,25\,\% y una especificidad de 99,58\,\% \parencite{oukil2022}. Como referencia humana, el trabajo original de la regla informa 92,8\,\% y 90,3\,\% \parencite{nachbar1994}. Estos valores no se pueden comparar directamente con los nuestros, porque ninguno de esos trabajos separa nevos comunes de nevos atípicos y melanomas, que es la pregunta de este trabajo.
+
+Lo que buscamos aportar es una medición que se pueda revisar paso a paso. Cada criterio se compara con el dermatólogo, los mapas muestran en qué parte de la lesión está la información y el algoritmo final no entrena ningún clasificador, sino que usa la fórmula de la regla.
 
 \subsection{Pregunta, objetivos e hipótesis}
 \label{sec:objetivos}
 
-\paragraph{Pregunta.} ¿Pueden medirse automáticamente los criterios de la regla ABCD, complementarse con descriptores por zona de la lesión y distinguir lesiones sospechosas de lunares comunes?
-
-\paragraph{Objetivo general.} Desarrollar un algoritmo que segmente la lesión en una imagen dermatoscópica, calcule los criterios de la regla ABCD y el TDS, los complemente con descriptores del centro, la periferia y la interfase con la piel, y estime si la lesión es sospechosa, con una interfaz gráfica que muestre cada etapa.
+\paragraph{Pregunta y objetivo general.} ¿Pueden medirse automáticamente los criterios de la regla ABCD, complementarse con descriptores por zona de la lesión y distinguir lesiones sospechosas de lunares comunes? Para responderlo, buscamos desarrollar un algoritmo que haga esas mediciones y estime si la lesión es sospechosa, con una interfaz gráfica que muestre cada etapa.
 
 \paragraph{Objetivos específicos.}
-\pendiente{Revisar y ajustar con el grupo:}
-(1)~quitar los artefactos (viñeteo y pelos) y medir su efecto en la segmentación;
+(1)~Quitar los artefactos (viñeteo y pelos) y medir su efecto en la segmentación;
 (2)~caracterizar la pérdida por compresión JPEG;
 (3)~segmentar la lesión y validar contra la máscara manual (Dice);
 (4)~medir A, B y C y comparar A y C con el dermatólogo ($\kappa$ de Cohen);
