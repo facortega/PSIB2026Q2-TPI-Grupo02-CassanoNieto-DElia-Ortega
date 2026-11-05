@@ -35,14 +35,15 @@ from modulos.m5_textura_criterio_d import textura_criterio_d     # AGREGADO (M6)
 ZONAS = ("centro", "periferia", "interfase_interna", "interfase_externa")
 
 # ------------------------------ Parámetros ------------------------------
-# AGREGADO (M6): elegidos con ENTRENAMIENTO y la máscara de referencia (ver cuaderno).
-# DECIDIDO: con 0,5 el centro es el 29 % de la lesión (mediana). Se probó 0,3 y 0,7: el AUC del
-# mejor contraste es 0,80, 0,78 y 0,77, diferencias chicas para 140 imágenes, así que no hay
-# motivo para apartarse del valor que marca la mitad de la distancia al borde.
+# AGREGADO (M6): elegidos con ENTRENAMIENTO y la máscara de M3 (ver cuaderno).
+# DECIDIDO: se probó 0,3, 0,5 y 0,7: el AUC del mejor contraste es 0,79, 0,76 y 0,74, diferencias
+# chicas para 140 imágenes, así que no hay motivo para apartarse del valor que marca la mitad de
+# la distancia al borde.
 FRACCION_CENTRO = 0.5     # el centro es donde la distancia al borde supera esta fracción de la máxima
-# DECIDIDO: en píxeles fijos y no relativo al tamaño: el ancho de la transición lesión-piel no
-# depende del área (Spearman 0,07). La piel se alcanza a 10 px del borde en la mediana y a 16 en el
-# percentil 75, y 15 px no se come la lesión (la distancia máxima al borde es de al menos 60 px).
+# DECIDIDO: en píxeles fijos y no relativo al tamaño. Con la máscara de M3 el ancho de la transición
+# se relaciona con el área (Spearman 0,38), pero con la de referencia casi no (0,07), así que buena
+# parte parece error de segmentación. La piel se alcanza a 12 px del borde en la mediana y a 19 en el
+# percentil 75, y 15 px no se come la lesión (la distancia máxima al borde es de al menos 57 px).
 ANCHO_INTERFASE = 15      # píxeles
 # DECIDIDO: una ventana de 15 px tiene menos píxeles que celdas la GLCM de 32 x 32, y una de 51 px
 # ya aplana el mapa (variación relativa 0,08 contra 0,10). Con PASO 8 tarda unos 0,2 s por imagen.
@@ -129,8 +130,8 @@ def contrastes_entre_zonas(por_zona):
 
     DECIDIDO: las restas van en este sentido porque tds_extendido SUMA cada término, así que
     conviene que un valor alto signifique "más sospechosa". En ENTRENAMIENTO, los que más
-    separan son periferia_vs_centro_S (AUC 0,78) e interfase_S (AUC 0,68). V de la periferia
-    contra el centro no aporta (AUC 0,51).
+    separan sin repetirse son periferia_vs_centro_S (AUC 0,76) e interfase_S (AUC 0,69). V de la
+    periferia contra el centro no aporta (AUC 0,53).
 
     Entra: por_zona   dict {zona: {atributo: valor}}, salida de atributos_por_zona()
     Sale : dict plano {nombre: float}. NaN si alguna de las dos zonas estaba vacía.
