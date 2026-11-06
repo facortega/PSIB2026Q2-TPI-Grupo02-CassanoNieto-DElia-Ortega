@@ -20,6 +20,12 @@
 \setlength{\textfloatsep}{8pt plus 2pt minus 2pt}
 \setlength{\intextsep}{8pt plus 2pt minus 2pt}
 \setlength{\abovecaptionskip}{4pt}
+% Las páginas con sólo figuras empiezan arriba en vez de centrarse
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{12pt plus 2pt}
+\setlength{\@fpbot}{0pt plus 1fil}
+\makeatother
 
 % --- Bibliografía: numerada, en orden de aparición --------------------------------
 \usepackage{csquotes}
@@ -44,19 +50,21 @@
 
 \begin{titlepage}
   \centering
+  \includegraphics[width=6.5cm]{logo_itba}\par
+  \vspace{0.5cm}
   {\large Instituto Tecnológico de Buenos Aires\par}
   \vspace{0.3cm}
   {\large 16.63 Procesamiento de Señales e Imágenes Biomédicas\par}
   {2026 --- Segundo cuatrimestre\par}
   \vspace{0.2cm}
   {Comisión BIO\par}
-  \vspace{2.5cm}
+  \vspace{2cm}
   {\LARGE\bfseries Detección de lunares sospechosos\\mediante imágenes dermatoscópicas\par}
   \vspace{0.4cm}
   {\Large Trabajo Práctico de Imágenes (TPI)\par}
   \vspace{0.3cm}
-  {\small PSIB2026Q2-TPI-Grupo02-CassanoNieto DElia Ortega\par}
-  \vspace{2.5cm}
+  {\small \href{https://github.com/facortega/PSIB2026Q2-TPI-Grupo02-CassanoNieto-DElia-Ortega}{\color{blue!60!black}PSIB2026Q2-TPI-Grupo02-CassanoNieto DElia Ortega}\par}
+  \vspace{2cm}
   {\large Grupo 2\par}
   \vspace{0.8cm}
   \begin{tabular}{ll}
@@ -85,9 +93,11 @@
 \input{secciones/03_resultados}
 \input{secciones/04_conclusiones}
 
+\clearpage
 \printbibliography[heading=bibintoc,title={Referencias}]
 
 % Anexo opcional (máximo 4 páginas). Comentar la línea si no se usa.
+\clearpage
 \appendix
 \input{secciones/05_anexo}
 
