@@ -1,6 +1,22 @@
 \section{Anexo}
 \label{sec:anexo}
-% Opcional, máximo 4 páginas. Figuras o tablas complementarias que no entran en las 8 páginas.
+
+\begin{table}[!htb]
+  \centering\small
+  \begin{tabular}{@{}lccccc@{}}
+    \toprule
+    Método & Dice medio & Mediana & Peor & Dice $<$ 0,7 & Segundos por imagen \\
+    \midrule
+    \emph{Watershed} & 0,911 & 0,936 & 0,504 & 3 & 0,151 \\
+    \textbf{Crecimiento de regiones} & \textbf{0,908} & \textbf{0,931} & \textbf{0,501} & \textbf{2} & \textbf{0,016} \\
+    Otsu & 0,906 & 0,940 & 0,262 & 6 & 0,013 \\
+    Chan-Vese & 0,900 & 0,938 & 0,262 & 7 & 0,351 \\
+    k-means & 0,880 & 0,925 & 0,259 & 10 & 0,207 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Métodos de segmentación con su mejor combinación de parámetros, sobre las 140 imágenes de entrenamiento.}
+  \label{tab:metodos}
+\end{table}
 
 \begin{figure}[!htb]
   \centering
@@ -47,45 +63,6 @@
   \caption{Remoción de pelos en una imagen con muchos pelos (IMD003) y en una sin pelos con red de pigmento (IMD200). Se muestran la original, los pelos detectados, el cierre con \emph{inpainting} y el filtro de mediana.}
   \label{fig:pelos}
 \end{figure}
-
-\begin{figure}[!htb]
-  \centering
-  \includegraphics[width=\textwidth]{m1_filtro_forma}
-  \caption{Efecto del filtro de forma en la detección de pelos sobre IMD200, que no tiene pelos. Se comparan los candidatos del \emph{black-hat} (sólo umbral), el filtro por largo y ancho y el filtro completo con eje mayor. Se indica la fracción de la lesión marcada como pelo.}
-  \label{fig:filtro-forma}
-\end{figure}
-
-\begin{figure}[!htb]
-  \centering
-  \includegraphics[width=0.75\textwidth]{m0_ejemplos}
-  \caption{Un ejemplo de cada diagnóstico de PH2 con el contorno de su máscara manual.}
-  \label{fig:ejemplos}
-\end{figure}
-
-\begin{figure}[!htb]
-  \centering
-  \includegraphics[width=0.75\textwidth]{m1_vineta}
-  \caption{Detección del viñeteo. A la izquierda, la mediana del brillo $V$ en anillos concéntricos para una imagen típica (IMD002) y una con la lesión tocando el borde (IMD058), con el radio detectado en líneas verticales. A la derecha, el límite de la zona válida sobre ambas imágenes.}
-  \label{fig:vineta}
-\end{figure}
-
-\begin{table}[!htb]
-  \centering\small
-  \begin{tabular}{@{}lll@{}}
-    \toprule
-    Etapa & Parámetro & Valor \\
-    \midrule
-    Viñeta & Anillo / umbral / radio mínimo & 4 px / 0,6 del máximo / 0,8 semidiagonal \\
-    Pelos  & Elemento estructurante & segmento de 21 px, 12 orientaciones \\
-           & Umbral del \emph{black-hat} & 0,10 \\
-           & Forma (largo / ancho / eje mayor) & $\ge 60$ px / $\le 8$ px / $\ge 80$ px \\
-           & Reconstrucción & \emph{inpainting} de Telea, radio 5 px \\
-    Comparación & Filtro de mediana & $9\times9$ por canal \\
-    \bottomrule
-  \end{tabular}
-  \caption{Parámetros del mejoramiento (módulo M1), elegidos con el conjunto de entrenamiento.}
-  \label{tab:param-m1}
-\end{table}
 
 \begin{table}[!htb]
   \centering\small
@@ -140,6 +117,13 @@
   \caption{Archivos de Python del repositorio. Cada módulo M$n$ está en \texttt{modulos/m$n$\_\ldots/}.}
   \label{tab:archivos}
 \end{table}
+
+\begin{figure}[!htb]
+  \centering
+  \includegraphics[width=0.5\textwidth]{m6_zonas}
+  \caption{Las cuatro zonas sobre una lesión de tamaño típico de entrenamiento.}
+  \label{fig:zonas}
+\end{figure}
 
 \begin{figure}[!htb]
   \centering
