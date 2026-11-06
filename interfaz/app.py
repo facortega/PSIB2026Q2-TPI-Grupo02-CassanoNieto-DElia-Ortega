@@ -18,16 +18,8 @@ La interfaz NO tiene lógica propia: sólo llama a las funciones de modulos/ (as
 ve es exactamente lo que se evalúa).
 
 Los colores siguen el tema claro u oscuro del sistema; el botón de arriba a la derecha cambia
-de uno a otro. El diseño es el mismo de la aplicación de pupilometría.
+de uno a otro.
 
-PENDIENTE (interfaz):
-  - [x] Ejes de simetría dibujados sobre la imagen y gradiente por sector.
-        Verificado con M4: fracciones_asimetria da el ángulo desde las columnas, como lo dibuja _dibujar_ejes.
-  - [x] D estimado: umbrales leídos de resultados/caracteristicas.csv (se ajustan con entrenamiento).
-  - [x] TDS extendido y clasificación con los umbrales de Youden de M7 (también salen de esa tabla).
-  - [x] Mapa de colores con los colores de M4 y su leyenda.
-  - [x] Subir una imagen propia.
-  - [ ] Capturas para el informe (sección 2) y ensayo de la demo (cuenta en los 15-20 min).
 """
 
 import queue
@@ -151,9 +143,9 @@ def ajuste_entrenamiento():
     """Busca lo que se ajusta con las imágenes de entrenamiento: D y los umbrales de M7.
 
     Entra: nada; lee resultados/caracteristicas.csv (lo genera python main.py)
-    Sale : dict con atributo_d (sin el prefijo "glcm_"), umbrales_d, entrenamiento (las filas
-           de entrenamiento, con D) y los umbrales de Youden del TDS y del TDS extendido.
-           None si la tabla todavía no existe.
+    Sale : dict con umbrales_estructuras (el umbral de cada estructura de D), entrenamiento
+           (las filas de entrenamiento, con D) y los umbrales de Youden del TDS y del TDS
+           extendido. None si la tabla todavía no existe.
     """
     if not TABLA.exists():
         return None
@@ -162,9 +154,8 @@ def ajuste_entrenamiento():
     sospechosa = entrenamiento["sospechosa"].to_numpy(bool)
     tds = m7.tds(entrenamiento["A"], entrenamiento["B"], entrenamiento["C"], entrenamiento["D"])
     extendido = m7.tds_extendido(entrenamiento, m7.TERMINOS_EXTRA, entrenamiento)
-    return dict(atributo_d=tabla.attrs["atributo_d"].removeprefix("glcm_"), umbrales_d=tabla.attrs["umbrales_d"],
-                entrenamiento=entrenamiento, umbral_tds=m7.umbral_youden(tds, sospechosa),
-                umbral_extendido=m7.umbral_youden(extendido, sospechosa))
+    return dict(umbrales_estructuras=tabla.attrs["umbrales_estructuras"], entrenamiento=entrenamiento,
+                umbral_tds=m7.umbral_youden(tds, sospechosa), umbral_extendido=m7.umbral_youden(extendido, sospechosa))
 
 
 def clasificar(tds):
@@ -801,10 +792,12 @@ class Aplicacion(tk.Tk):
         paso(4, "Textura y criterio D (M5)")
         res["glcm"] = etapa("M5", textura_criterio_d.atributos_glcm, res["v"], m)
         ajuste = res["ajuste"] = etapa("M5", ajuste_entrenamiento)
-        if res["glcm"] is not None and ajuste is not None:
-            res["atributo_d"] = ajuste["atributo_d"]
-            res["D"] = etapa("M5", textura_criterio_d.estimar_d, res["glcm"][ajuste["atributo_d"]], ajuste["umbrales_d"])
-            avisar("texto", f"  ✔ D = {res['D']}, estimado con {ajuste['atributo_d']}\n", "ok")
+        medidas = etapa("M5", textura_criterio_d.medidas_estructuras, res["mejorada"], m)
+        if medidas is not None and ajuste is not None:
+            detectadas = textura_criterio_d.detectar_estructuras(medidas, ajuste["umbrales_estructuras"])
+            res["atributo_d"] = ", ".join(e.replace("_", " ") for e, si in detectadas.items() if si) or "ninguna"
+            res["D"] = sum(detectadas.values())
+            avisar("texto", f"  ✔ D = {res['D']} (estructuras detectadas: {res['atributo_d']})\n", "ok")
         elif res["glcm"] is not None:
             avisar("texto", "  ✔ Atributos GLCM calculados\n", "ok")
             avisar("texto", "  ⚠ D sin estimar: falta resultados/caracteristicas.csv (python main.py)\n", "aviso")
@@ -1029,7 +1022,7 @@ class Aplicacion(tk.Tk):
         if crit:
             notas.append("Colores: " + (", ".join(NOMBRES_COLOR[k] for k in crit["colores"]) or "—") + ".")
         if res["atributo_d"]:
-            notas.append(f"D estimado con {res['atributo_d']}; umbrales ajustados en entrenamiento.")
+            notas.append(f"Estructuras detectadas: {res['atributo_d']}; umbrales ajustados en entrenamiento.")
         if res["tds"] is not None:
             notas.append(f"El cartel usa los umbrales clínicos de la regla. Las filas «¿Sospechosa?» usan los "
                          f"umbrales de Youden elegidos en entrenamiento (M7); el TDS extendido suma "

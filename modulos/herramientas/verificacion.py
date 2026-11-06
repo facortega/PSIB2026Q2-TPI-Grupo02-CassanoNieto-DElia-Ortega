@@ -177,17 +177,13 @@ def verificar_m5():
     assert a_r["contraste"] > a_l["contraste"], "una lesión con textura tiene que dar más contraste que una lisa"
     assert a_r["entropia"] > a_l["entropia"], "una lesión con textura tiene que dar más entropía que una lisa"
 
-    rng = np.random.default_rng(0)
-    d = rng.integers(0, 4, 200)
-    tabla = pd.DataFrame({"glcm_contraste": d + 0.2 * rng.standard_normal(200),
-                          "glcm_energia": rng.standard_normal(200), "D_derm": d})
-    assert textura_criterio_d.elegir_atributo_d(tabla) == "glcm_contraste", \
-        "elegir_atributo_d no elige el atributo que claramente cambia con D (devolver el nombre de la columna)"
-    umbrales = np.asarray(textura_criterio_d.ajustar_umbrales_d(tabla["glcm_contraste"].to_numpy(), d))
-    assert np.all(np.diff(umbrales) > 0), "los umbrales tienen que ser crecientes"
-    est = np.array([textura_criterio_d.estimar_d(x, umbrales) for x in tabla["glcm_contraste"]])
-    assert np.mean(est == d) >= 0.8, f"con un atributo casi perfecto, D se acierta sólo en el {100 * np.mean(est == d):.0f} %"
-    assert textura_criterio_d.estimar_d(-100, umbrales) == 0, "por debajo de todos los umbrales D tiene que ser 0"
+    medidas = textura_criterio_d.medidas_estructuras(rugosa, info["mascara"])
+    assert set(medidas) == set(textura_criterio_d.ESTRUCTURAS), "medidas_estructuras tiene que dar una medida por estructura"
+    umbrales = {e: 0.0 for e in textura_criterio_d.ESTRUCTURAS}
+    prueba = {e: 1.0 for e in textura_criterio_d.ESTRUCTURAS} | {"velo": -1.0, "estrias": np.nan}
+    detectadas = textura_criterio_d.detectar_estructuras(prueba, umbrales)
+    assert sum(detectadas.values()) == 3 and not detectadas["velo"] and not detectadas["estrias"], \
+        "detectar_estructuras tiene que marcar sólo las medidas que superan su umbral (NaN cuenta como ausente)"
 
 
 # ---------------------------------------------------------------- M6

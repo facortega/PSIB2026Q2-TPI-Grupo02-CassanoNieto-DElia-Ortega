@@ -39,6 +39,7 @@ class Resultado:
     dice: float = np.nan
     criterios: dict = field(default_factory=dict)
     textura: dict = field(default_factory=dict)
+    estructuras: dict = field(default_factory=dict)  # medida de cada estructura de D (M5)
     zonas: dict = field(default_factory=dict)       # contrastes entre zonas (dict plano)
 
 
@@ -75,6 +76,7 @@ def procesar(caso, hasta="zonas", metodo_pelos="cierre", metodo_seg=None, calida
         return res
     v = mejoramiento.a_hsv(res.img_mejorada)[..., 2]
     res.textura = textura_criterio_d.atributos_glcm(v, res.mascara)
+    res.estructuras = textura_criterio_d.medidas_estructuras(res.img_mejorada, res.mascara)
     if ultima < 4:
         return res
     por_zona = zonas_y_mapas.atributos_por_zona(res.img_mejorada, res.mascara)
@@ -124,22 +126,27 @@ def tabla_de_caracteristicas(resultados):
         for k, v in res.criterios.items():
             fila[k] = " ".join(v) if k == "colores" else v
         fila.update({f"glcm_{k}": v for k, v in res.textura.items()})
+        fila.update({f"estr_{k}": v for k, v in res.estructuras.items()})
+        fila.update({f"derm_{k}": v for k, v in c.estructuras.items()})
         fila.update({f"zona_{k}": v for k, v in res.zonas.items()})
         filas.append(fila)
     return pd.DataFrame(filas)
 
 
 def completar_d(tabla):
-    """Agrega la columna "D" (criterio D estimado) ajustando SOLO con entrenamiento.
+    """Agrega el criterio D estimado por estructuras, ajustando SOLO con entrenamiento.
 
-    Entra: tabla  DataFrame de tabla_de_caracteristicas, con las columnas glcm_*, D_derm y conjunto
-    Sale : copia de la tabla con "D"; attrs guarda el atributo y los umbrales usados
+    Entra: tabla  DataFrame de tabla_de_caracteristicas, con las columnas estr_*, derm_* y conjunto
+    Sale : copia de la tabla con "D" (cantidad de estructuras detectadas) y una columna
+           "detectada_<estructura>" por cada una; attrs["umbrales_estructuras"] guarda los umbrales
     """
     entrenamiento = tabla[tabla["conjunto"] == "entrenamiento"]
-    atributo = textura_criterio_d.elegir_atributo_d(entrenamiento)
-    umbrales = textura_criterio_d.ajustar_umbrales_d(entrenamiento[atributo].to_numpy(),
-                                                     entrenamiento["D_derm"].to_numpy())
+    umbrales = textura_criterio_d.umbrales_estructuras(entrenamiento)
     tabla = tabla.copy()
-    tabla["D"] = [textura_criterio_d.estimar_d(v, umbrales) for v in tabla[atributo]]
-    tabla.attrs["atributo_d"], tabla.attrs["umbrales_d"] = atributo, [float(u) for u in umbrales]
+    detectadas = [textura_criterio_d.detectar_estructuras({e: fila[f"estr_{e}"] for e in umbrales}, umbrales)
+                  for _, fila in tabla.iterrows()]
+    for e in umbrales:
+        tabla[f"detectada_{e}"] = [d[e] for d in detectadas]
+    tabla["D"] = [sum(d.values()) for d in detectadas]
+    tabla.attrs["umbrales_estructuras"] = {e: float(u) for e, u in umbrales.items()}
     return tabla

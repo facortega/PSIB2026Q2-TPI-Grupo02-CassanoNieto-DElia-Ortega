@@ -107,6 +107,9 @@ def auc(puntajes, etiquetas):
 def kappa_cohen(a, b):
     """Acuerdo entre dos evaluaciones descontando el que se daría por azar.
 
+    Si las dos evaluaciones ponen siempre la misma única categoría, la fórmula queda 0/0. En ese
+    caso devuelve 1 si coinciden en todo y 0 si no.
+
     Entra: a, b   arrays o listas del mismo largo con categorías
     Sale : float (1 = acuerdo perfecto, 0 = el esperable por azar)
     """
@@ -114,6 +117,8 @@ def kappa_cohen(a, b):
     categorias = np.union1d(a, b)
     observado = (a == b).mean()
     esperado = sum((a == c).mean() * (b == c).mean() for c in categorias)
+    if esperado == 1:                 # los dos ponen siempre lo mismo: no hay nada que medir
+        return 1.0 if observado == 1 else 0.0
     return float((observado - esperado) / (1 - esperado))
 
 

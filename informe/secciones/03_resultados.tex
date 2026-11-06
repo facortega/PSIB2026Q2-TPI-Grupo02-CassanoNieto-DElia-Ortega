@@ -69,19 +69,31 @@ En prueba los criterios dan valores parecidos a los de entrenamiento, así que s
 
 \paragraph{¿Error de segmentación o del criterio?} Con la máscara de PH2 los criterios no mejoran. El $\kappa$ de A baja de 0,44 a 0,29 y el AUC de la circularidad de 0,75 a 0,57, y B y C quedan parecidos, así que los desacuerdos vienen de los criterios y no de la segmentación. Una explicación posible es que nuestra máscara sigue el pigmento más oscuro y su forma refleja también cómo está repartido.
 
-El criterio D estimado resultó débil como medida de D. En validación cruzada dentro de entrenamiento acierta el valor exacto en el 30\,\% de las imágenes, menos que decir siempre la mediana (37\,\%), y su acuerdo con el dermatólogo es casi nulo ($\kappa=0{,}06$). En prueba acierta en el 40\,\%, también menos que la mediana de entrenamiento (50\,\%), con $\kappa=0{,}17$. Tiene sentido, porque un solo número global de textura no puede contar cinco estructuras distintas.
+Los detectores de cada estructura se mantienen en prueba (tabla~\ref{tab:estructuras}). El velo y la regresión se detectan bien y casi igual que en entrenamiento. Las estrías bajan de 0,79 a 0,67, aunque hay sólo 12 imágenes de prueba con estrías. La red atípica y los puntos y glóbulos, que son patrones finos, se detectan peor y con especificidad baja (0,46 y 0,44), así que se marcan en muchas imágenes que no los tienen y el D estimado tiende a pasarse. Como medida del valor exacto de D el resultado es débil, porque acierta en el 27\,\% de las imágenes de prueba, menos que decir siempre la mediana de entrenamiento (50\,\%), con $\kappa=0{,}07$. Basta errar en una estructura para errar el valor exacto, aunque el conteo siga ordenando bien las lesiones.
+
+\begin{table}[!htb]
+  \centering\small
+  \begin{tabular}{@{}lccc@{}}
+    \toprule
+    Estructura & Imágenes con la estructura & AUC entrenamiento & AUC prueba \\
+    \midrule
+    Red de pigmento atípica & 82 / 34 & 0,66 & 0,61 \\
+    Puntos y glóbulos & 78 / 35 & 0,60 & 0,63 \\
+    Estrías & 18 / 12 & 0,79 & 0,67 \\
+    Regresión & 19 / 6 & 0,79 & 0,79 \\
+    Velo azul-blanquecino & 24 / 12 & 0,95 & 0,93 \\
+    \bottomrule
+  \end{tabular}
+  \caption{Detección de cada estructura de D. El AUC mide qué tan bien la medida separa las imágenes en que el dermatólogo marcó la estructura de las demás. Las cantidades son de entrenamiento y de prueba.}
+  \label{tab:estructuras}
+\end{table}
 
 \subsection{Zonas y mapas de características}
-Los mapas sugieren que la información no está repartida de manera pareja (figura~\ref{fig:mapas}), aunque son dos ejemplos y no una prueba. Medido en las 140 imágenes de entrenamiento, en los nevos comunes la mediana de la entropía baja de adentro hacia afuera (4,40 en el centro, 4,31 en la periferia y 4,16 en la interfase interna), y en las sospechosas esa caída no aparece (4,31, 4,40 y 4,33). Un número global promedia esos comportamientos opuestos.
+Los mapas sugieren que la información no está repartida de manera pareja (figura~\ref{fig:mapas} del anexo). Medido en las 140 imágenes de entrenamiento, en los nevos comunes la mediana de la entropía baja de adentro hacia afuera (4,40 en el centro, 4,31 en la periferia y 4,16 en la interfase interna), y en las sospechosas esa caída no aparece (4,31, 4,40 y 4,33). Un número global promedia esos comportamientos opuestos.
 
-\begin{figure}[!htb]
-  \centering
-  \includegraphics[width=0.78\textwidth]{m6_mapas}
-  \caption{Mapas de entropía, correlación y contraste en un nevo común y un melanoma de entrenamiento. El hueco del mapa del melanoma es una zona central clara que la máscara automática dejó afuera.}
-  \label{fig:mapas}
-\end{figure}
 
-La tabla~\ref{tab:auc-prueba} muestra qué pasó al llevar estas medidas a prueba. D estimado cae a un AUC de 0,60 y su intervalo incluye al 0,5, de modo que no se puede afirmar que separe los grupos. La saturación de periferia menos centro es la única medida automática cuyo intervalo no incluye al 0,5, aunque hay que leerla con cuidado, porque sigue de cerca al brillo de la lesión ($\rho=-0{,}67$ en prueba) y ese brillo solo da un AUC parecido. Con estos datos no podemos separar los dos efectos. La saturación de piel menos lesión queda en 0,60, con un intervalo que incluye al 0,5, y además baja cuando M3 acierta más ($\rho=-0{,}42$ con el Dice), así que en parte mide errores de segmentación.
+
+La tabla~\ref{tab:auc-prueba} muestra qué pasó al llevar estas medidas a prueba. D estimado alcanza un AUC de 0,67, con un intervalo que no incluye al 0,5, así que separa los grupos aunque de forma modesta. La saturación de periferia menos centro llega a 0,71, aunque hay que leerla con cuidado, porque sigue de cerca al brillo de la lesión ($\rho=-0{,}67$ en prueba) y ese brillo solo da un AUC parecido. Con estos datos no podemos separar los dos efectos. La saturación de piel menos lesión queda en 0,60, con un intervalo que incluye al 0,5, y además baja cuando M3 acierta más ($\rho=-0{,}42$ con el Dice), así que en parte mide errores de segmentación.
 
 \begin{table}[!htb]
   \centering\small
@@ -90,43 +102,40 @@ La tabla~\ref{tab:auc-prueba} muestra qué pasó al llevar estas medidas a prueb
     Medida & AUC entrenamiento & AUC prueba & IC 95\,\% en prueba \\
     \midrule
     D del dermatólogo (techo) & 0,92 & 0,88 & 0,81 a 0,94 \\
-    D estimado & 0,73 & 0,60 & 0,46 a 0,74 \\
+    D estimado & 0,76 & 0,67 & 0,54 a 0,80 \\
     Periferia menos centro, $S$ & 0,76 & 0,71 & 0,58 a 0,84 \\
     Piel menos lesión, $S$ & 0,69 & 0,60 & 0,46 a 0,75 \\
     Oscuridad de la lesión ($-V$) & 0,75 & 0,68 & 0,54 a 0,80 \\
-    $0{,}5\,D$ más los dos términos de zonas & 0,83 & 0,71 & 0,58 a 0,84 \\
     \bottomrule
   \end{tabular}
   \caption{Capacidad de cada medida para separar lesiones sospechosas de nevos comunes (140 imágenes de entrenamiento y 60 de prueba).}
   \label{tab:auc-prueba}
 \end{table}
 
-La última fila de la tabla es el TDS extendido sin A, B ni C, que no es el TDS y sirve sólo para ver si las zonas agregan algo a D. Sube el AUC en 0,11 respecto de D estimado, pero el intervalo de esa diferencia (de $-0{,}01$ a 0,23) incluye al cero, así que la mejora no es significativa. Con el umbral elegido en entrenamiento alcanza en prueba una sensibilidad de 0,81 y una especificidad de 0,54, frente a 0,56 y 0,63 de D estimado solo.
-
 \subsection{Clasificación}
-El TDS automático separa las lesiones sospechosas de los nevos comunes en prueba, con un AUC de 0,78 cuyo intervalo no incluye al 0,5 (tabla~\ref{tab:clasificacion} y figura~\ref{fig:clasificacion}). Por separado, los criterios que más aportan son A y C (AUC de 0,73 y 0,69), mientras que B y D quedan en 0,60.
+La tabla~\ref{tab:tds} y la figura~\ref{fig:roc} resumen la clasificación en prueba. El TDS automático separa las lesiones sospechosas de los nevos comunes con un AUC de 0,77, y su intervalo no incluye al 0,5, así que la primera parte de la hipótesis 2 se confirma. El TDS extendido llega a 0,79, pero la diferencia con el TDS es de 0,02 y su intervalo (de $-0{,}06$ a 0,09) incluye al cero, así que la segunda parte no se confirma. Sumar los contrastes de zonas no mejora la separación de forma significativa, posiblemente porque el primero de ellos sigue de cerca al brillo de la lesión, y los colores oscuros ya los cuenta $C$.
 
 \begin{table}[!htb]
   \centering\small
-  \begin{tabular}{@{}lccccc@{}}
+  \begin{tabular}{@{}lcccc@{}}
     \toprule
-    Clasificador & Umbral & Sensibilidad & Especificidad & AUC & IC 95\,\% del AUC \\
+    Clasificador & Umbral & Sensibilidad & Especificidad & AUC (IC 95\,\%) \\
     \midrule
-    TDS, umbral clínico & 4,75 & 0,25 & 0,96 & 0,78 & 0,66 a 0,89 \\
-    TDS, umbral de Youden & 2,25 & 0,78 & 0,58 & 0,78 & 0,66 a 0,89 \\
-    TDS extendido, umbral de Youden & 1,62 & 0,89 & 0,46 & 0,79 & 0,66 a 0,90 \\
+    TDS, umbral clínico & 4,75 & 0,39 & 0,96 & 0,77 (0,65 a 0,89) \\
+    TDS, umbral de Youden & 3,25 & 0,69 & 0,88 & 0,77 (0,65 a 0,89) \\
+    TDS extendido, umbral de Youden & 3,49 & 0,72 & 0,75 & 0,79 (0,67 a 0,90) \\
     \bottomrule
   \end{tabular}
-  \caption{Clasificación de las 60 imágenes de prueba. Los umbrales de Youden se eligieron en entrenamiento.}
-  \label{tab:clasificacion}
+  \caption{Clasificación de las 60 imágenes de prueba en lesiones sospechosas y nevos comunes. Los umbrales de Youden se eligieron en entrenamiento.}
+  \label{tab:tds}
 \end{table}
-
-Con el umbral clínico la sensibilidad es de sólo 0,25 por los nevos atípicos. La regla se pensó para reconocer melanomas, y con ese umbral el programa detecta 8 de los 12 melanomas de prueba pero sólo 1 de los 24 nevos atípicos, cuyo TDS tiene una mediana de 3,05, más cerca de los nevos comunes (2,0) que de los melanomas (5,85). El TDS extendido sube el AUC en apenas 0,006, con un intervalo de la diferencia de $-0{,}07$ a 0,09, así que agregar las zonas no lo mejora, posiblemente porque lo que agregaban a D ya lo cubren A, B y C.
 
 \begin{figure}[!htb]
   \centering
-  \includegraphics[width=0.42\textwidth]{m7_roc}\hspace{0.04\textwidth}%
-  \includegraphics[width=0.42\textwidth]{m7_tds_grupos}
-  \caption{Curvas ROC del TDS y del TDS extendido (izquierda) y TDS de las imágenes de prueba según el grupo, con el umbral clínico punteado (derecha).}
-  \label{fig:clasificacion}
+  \includegraphics[width=0.48\textwidth]{m7_roc}\hfill
+  \includegraphics[width=0.48\textwidth]{m7_tds_grupos}
+  \caption{Curvas ROC del TDS y del TDS extendido en prueba (izquierda) y distribución del TDS por grupo, con el umbral clínico en línea punteada (derecha).}
+  \label{fig:roc}
 \end{figure}
+
+El umbral clínico resulta muy conservador con nuestro TDS, porque detecta sólo el 39\,\% de las sospechosas, aunque casi no se equivoca con los nevos comunes. El umbral de Youden queda más abajo (3,25) y equilibra mejor las dos medidas. Que el mejor umbral sea más bajo es esperable, porque nuestro $D$ adaptado parte de 0 y no de 1, y el borde automático suele dar valores bajos.
