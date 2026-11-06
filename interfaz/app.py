@@ -71,6 +71,8 @@ NOMBRES_COLOR = {"blanco": "blanco", "rojo": "rojo", "marron_claro": "marrón cl
                  "azul_grisaceo": "azul grisáceo", "negro": "negro"}
 NOMBRES_ESTRUCTURA = {"red_pigmento": "red atípica", "puntos_globulos": "puntos y glóbulos", "estrias": "estrías",
                       "regresion": "regresión", "velo": "velo"}
+NOMBRES_TERMINO = {"zona_periferia_vs_centro_S": "la saturación periferia − centro",
+                   "zona_interfase_S": "la saturación piel − lesión"}
 # Con qué se pinta cada color en el mapa de M4 (los mismos del cuaderno de M4)
 PINTURA = {"blanco": "#ffffff", "rojo": "#d62728", "marron_claro": "#c08a4b", "marron_oscuro": "#6b3a1e",
            "azul_grisaceo": "#6a86a8", "negro": "#111111"}
@@ -540,17 +542,19 @@ class Aplicacion(tk.Tk):
         marco = ttk.Frame(self.pestanas, padding=10)
         self.pestanas.add(marco, text="Resultado")
         marco.columnconfigure(0, weight=1)
-        marco.columnconfigure(1, weight=1)
+        # La tabla tiene filas largas («¿Sospechosa? TDS extendido > 3,49»): la columna derecha
+        # no se achica por debajo de lo que necesita, y el gráfico se queda con el resto.
+        marco.columnconfigure(1, weight=0, minsize=640)
         marco.rowconfigure(0, weight=1)
         self.g_lesion = Grafico(marco)
         self.g_lesion.grid(row=0, column=0, sticky="nsew", padx=(0, 12))
         derecha = ttk.Frame(marco)
         derecha.grid(row=0, column=1, sticky="nsew")
-        self.lbl_clase = ttk.Label(derecha, style="ClaseSin.TLabel", wraplength=480, justify="left")
+        self.lbl_clase = ttk.Label(derecha, style="ClaseSin.TLabel", wraplength=620, justify="left")
         self.lbl_clase.pack(anchor="w", pady=(0, 10))
-        self.t_resultado = self._tabla(derecha, ("Parámetro", "Calculado", "Según PH2"), (220, 120, 120), 11)
+        self.t_resultado = self._tabla(derecha, ("Parámetro", "Calculado", "Según PH2"), (330, 130, 140), 11)
         self.t_resultado.pack(fill="x")
-        self.lbl_resultado = ttk.Label(derecha, style="Sub.TLabel", wraplength=480, justify="left")
+        self.lbl_resultado = ttk.Label(derecha, style="Sub.TLabel", wraplength=620, justify="left")
         self.lbl_resultado.pack(anchor="w", pady=(10, 0))
 
     def _armar_criterios(self):
@@ -1028,7 +1032,7 @@ class Aplicacion(tk.Tk):
         if res["tds"] is not None:
             notas.append(f"El cartel usa los umbrales clínicos de la regla. Las filas «¿Sospechosa?» usan los "
                          f"umbrales de Youden elegidos en entrenamiento (M7); el TDS extendido suma "
-                         f"{' y '.join(t.removeprefix('zona_') for t in m7.TERMINOS_EXTRA)}.")
+                         f"{' y '.join(NOMBRES_TERMINO.get(t, t) for t in m7.TERMINOS_EXTRA)}.")
         if res["automatica"] is not None:
             notas.append("Contorno amarillo: segmentación." + (" Blanco punteado: referencia de PH2." if res["ref"] is not None else ""))
         elif res["ref"] is not None:
