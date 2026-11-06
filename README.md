@@ -8,7 +8,7 @@ de la regla ABCD, los complementa con textura y con descriptores por zona (centr
 interfase con la piel) y calcula el TDS para estimar si la lesión es sospechosa. Incluye una
 interfaz gráfica que muestra cada etapa.
 
-> **Entrega: jueves 05/11/2026 antes de las 17:00** (mail a los 4 docentes).
+> **Entrega: jueves 05/11/2026 antes de las 23:00** (mail a los 4 docentes).
 > Defensa: 12 y 14/11, 19-22 h (15-20 min + 5 de preguntas).
 
 ---
@@ -234,7 +234,7 @@ lectura a los usuarios de GitHub de los cuatro docentes.
 - Citas con `\parencite{clave}`; bibliografía APA en `referencias.bib`. **Revisar cada entrada
   contra la fuente original.**
 
-## Entrega (jueves 05/11, antes de las 17:00)
+## Entrega (jueves 05/11, antes de las 23:00)
 
 - [ ] `\borradorfalse`, sin `[PENDIENTE]`, ≤ 8 páginas
 - [ ] PDF del informe: `PSIB2026Q2-TPI-Grupo02-CassanoNieto DElia Ortega.pdf`
@@ -244,7 +244,7 @@ lectura a los usuarios de GitHub de los cuatro docentes.
 - [ ] Mail a **los 4 docentes** con asunto `[PSIB2026Q2-TPI] Grupo 02 - CassanoNieto DElia Ortega`,
       adjuntando el PDF y la presentación, y con el link al repositorio
 
-Pasadas las 17:00 la nota máxima es 7; si no se entrega antes de la primera clase de defensa, el
+Pasadas las 23:00 la nota máxima es 7; si no se entrega antes de la primera clase de defensa, el
 TP queda desaprobado (recuperatorio el 28/11).
 
 ## Cronograma sugerido
@@ -256,5 +256,5 @@ TP queda desaprobado (recuperatorio el 28/11).
 | lun 02/11 | M4 y M5 en `main` · borrador de Materiales y métodos |
 | mar 03/11 | M6 y M7 en `main` · `python main.py` completo · Resultados |
 | mié 04/11 | Conclusiones, revisión cruzada, interfaz terminada, presentación |
-| jue 05/11 | Revisión final, `\borradorfalse` y **envío antes de las 17:00** |
+| jue 05/11 | Revisión final, `\borradorfalse` y **envío antes de las 23:00** |
 | 12 y 14/11 | Defensa (ensayarla cronometrada; la demo de la interfaz entra en los 20 min) |

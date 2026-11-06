@@ -23,7 +23,7 @@ El canal azul es el que mejor separa la lesión de la piel en entrenamiento (AUC
   \label{tab:h1}
 \end{table}
 
-\paragraph{Compresión.} A calidad 95 el archivo ocupa unas 8 veces menos, con un PSNR en la lesión de 40,7\,dB y un SSIM de 0,97, y a calidad 10 bajan a 28,7\,dB y 0,70 (tabla~\ref{tab:compresion} del anexo). El SSIM cae más que el PSNR, porque lo más afectado es la textura, y a calidad 10 la red se reemplaza por bloques de $8\times8$ (figura~\ref{fig:compresion} del anexo).
+\paragraph{Compresión.} A calidad 95 el archivo ocupa unas 8 veces menos, con un PSNR en la lesión de 40,7\,dB, un SSIM de 0,97 y un $\Delta E$ de 1,9, imperceptible (tabla~\ref{tab:compresion} del anexo). Desde calidad 75 el $\Delta E$ (2,7) supera el umbral de percepción, así que los colores en los que se basa C cambian de forma visible, y a calidad 10 el PSNR baja a 28,7\,dB, el SSIM a 0,70 y la red se reemplaza por bloques de $8\times8$ (figura~\ref{fig:compresion} del anexo).
 
 \subsection{Segmentación}
 \label{sec:res-segmentacion}
@@ -60,7 +60,7 @@ En prueba, el crecimiento de regiones da un Dice medio de 0,916 y una mediana de
 \end{table}
 
 \subsection{Zonas y mapas de características}
-La información no está repartida de manera pareja (figura~\ref{fig:mapas} del anexo). En entrenamiento, en los nevos comunes la mediana de la entropía baja de adentro hacia afuera (4,40 en el centro, 4,31 en la periferia y 4,16 en la interfase interna), y en las sospechosas esa caída no aparece (4,31, 4,40 y 4,33).
+Los atributos GLCM de toda la lesión no se sostienen en prueba (la correlación, el mejor, pasa de un AUC de 0,76 en entrenamiento a 0,62). La información no está repartida de manera pareja (figura~\ref{fig:mapas} del anexo). En entrenamiento, en los nevos comunes la mediana de la entropía baja de adentro hacia afuera (4,40 en el centro, 4,31 en la periferia y 4,16 en la interfase interna), y en las sospechosas esa caída no aparece (4,31, 4,40 y 4,33).
 
 En prueba (tabla~\ref{tab:auc-prueba}), D estimado alcanza un AUC de 0,67 y la saturación de periferia menos centro, 0,71, pero sigue de cerca al brillo de la lesión ($\rho=-0{,}67$), que solo da un AUC parecido. La saturación de piel menos lesión queda en 0,60, con un intervalo que incluye al 0,5, y baja cuando M3 acierta más ($\rho=-0{,}42$ con el Dice), así que en parte mide errores de segmentación.
 

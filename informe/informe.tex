@@ -39,7 +39,7 @@
 % --- Marcas de trabajo pendiente ----------------------------------------------
 % Para la entrega: cambiar \borradortrue por \borradorfalse (o borrar las marcas).
 \newif\ifborrador
-\borradortrue
+\borradorfalse
 \newcommand{\pendiente}[1]{\ifborrador{\color{red}\textbf{[PENDIENTE]} #1}\fi}
 
 % LÍMITE DE LA CONSIGNA: 8 páginas desde la Introducción hasta las Conclusiones
@@ -83,10 +83,13 @@
   {\large 5 de noviembre de 2026\par}
 \end{titlepage}
 
+% Resumen e índice en romanos: el cuerpo (8 páginas) arranca en la página 1
+\pagenumbering{roman}
 \input{secciones/00_resumen}
 \setcounter{tocdepth}{2}
 \tableofcontents
 \clearpage
+\pagenumbering{arabic}
 
 \input{secciones/01_introduccion}
 \input{secciones/02_materiales_metodos}

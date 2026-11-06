@@ -12,6 +12,7 @@ venv/
 
 # Archivos auxiliares de LaTeX (en cualquier carpeta)
 informe/build/
+informe/informe.pdf
 *.aux
 *.log
 *.out
