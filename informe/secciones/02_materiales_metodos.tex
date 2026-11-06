@@ -161,7 +161,7 @@ Una lesión se clasifica como sospechosa si su TDS automático (ec.~\ref{eq:tds}
 
 \subsection{Evaluación}
 \label{sec:evaluacion}
-La segmentación se compara con la máscara de PH2 mediante el coeficiente de Dice, y A y C con el dermatólogo mediante el $\kappa$ de Cohen \parencite{cohen1960}, cuyos valores entre 0,41 y 0,60 indican un acuerdo moderado \parencite{landis1977}. La clasificación se mide con la sensibilidad, la especificidad y el AUC.
+La segmentación se compara con la máscara de PH2 mediante el coeficiente de Dice, y A, C y D con el dermatólogo mediante el $\kappa$ de Cohen \parencite{cohen1960}, cuyos valores entre 0,41 y 0,60 indican un acuerdo moderado \parencite{landis1977}. La clasificación se mide con la sensibilidad, la especificidad y el AUC.
 
 Para H1 se usa la prueba de Wilcoxon de rangos con signo, porque el Dice se mide de a pares en las mismas imágenes. El intervalo de confianza del 95\,\% del AUC se calcula con un \emph{bootstrap} de percentiles, sorteando 2000 veces con reposición dentro de cada grupo. Para comparar dos AUC se usa el mismo sorteo sobre las mismas imágenes, y la diferencia se considera significativa si su intervalo no incluye al cero.
 

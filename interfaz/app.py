@@ -69,6 +69,8 @@ NOMBRES_GLCM = {"energia": "Energía", "entropia": "Entropía", "contraste": "Co
 NOMBRES_CONTRASTE = {"H": "H (tono)", "S": "S (saturación)", "V": "V (brillo)", "contraste": "Contraste", "entropia": "Entropía"}
 NOMBRES_COLOR = {"blanco": "blanco", "rojo": "rojo", "marron_claro": "marrón claro", "marron_oscuro": "marrón oscuro",
                  "azul_grisaceo": "azul grisáceo", "negro": "negro"}
+NOMBRES_ESTRUCTURA = {"red_pigmento": "red atípica", "puntos_globulos": "puntos y glóbulos", "estrias": "estrías",
+                      "regresion": "regresión", "velo": "velo"}
 # Con qué se pinta cada color en el mapa de M4 (los mismos del cuaderno de M4)
 PINTURA = {"blanco": "#ffffff", "rojo": "#d62728", "marron_claro": "#c08a4b", "marron_oscuro": "#6b3a1e",
            "azul_grisaceo": "#6a86a8", "negro": "#111111"}
@@ -795,7 +797,7 @@ class Aplicacion(tk.Tk):
         medidas = etapa("M5", textura_criterio_d.medidas_estructuras, res["mejorada"], m)
         if medidas is not None and ajuste is not None:
             detectadas = textura_criterio_d.detectar_estructuras(medidas, ajuste["umbrales_estructuras"])
-            res["atributo_d"] = ", ".join(e.replace("_", " ") for e, si in detectadas.items() if si) or "ninguna"
+            res["atributo_d"] = ", ".join(NOMBRES_ESTRUCTURA[e] for e, si in detectadas.items() if si) or "ninguna"
             res["D"] = sum(detectadas.values())
             avisar("texto", f"  ✔ D = {res['D']} (estructuras detectadas: {res['atributo_d']})\n", "ok")
         elif res["glcm"] is not None:
